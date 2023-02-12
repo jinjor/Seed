@@ -1,0 +1,7 @@
+build
+release-build
+
+.cache
+tmp
+*.out
+benchmark_result.json
