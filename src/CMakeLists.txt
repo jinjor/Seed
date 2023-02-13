@@ -6,8 +6,8 @@ juce_add_plugin(SeedPlugin
     # COMPANY_COPYRIGHT "Yosuke Torii"
     # COMPANY_WEBSITE "https://github.com/jinjor"
     COMPANY_EMAIL "jinjorweb@gmail.com"
-    IS_SYNTH TRUE                               # Is this a synth or an effect?
-    NEEDS_MIDI_INPUT TRUE                       # Does the plugin need midi input?
+    IS_SYNTH FALSE                              # Is this a synth or an effect?
+    NEEDS_MIDI_INPUT FALSE                      # Does the plugin need midi input?
     NEEDS_MIDI_OUTPUT FALSE                     # Does the plugin need midi output?
     IS_MIDI_EFFECT FALSE                        # Is this plugin a MIDI effect?
     # EDITOR_WANTS_KEYBOARD_FOCUS TRUE/FALSE    # Does the editor need keyboard focus?
@@ -16,7 +16,7 @@ juce_add_plugin(SeedPlugin
     PLUGIN_CODE Seed                            # A unique four-character plugin id with exactly one upper-case character
                                                 # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case
     FORMATS VST3                                # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
-    VST3_CATEGORIES "Instrument"                # The name of the final executable, which can differ from the target name
+    VST3_CATEGORIES "Analyzer"                  # The name of the final executable, which can differ from the target name
     # AU_MAIN_TYPE "kAudioUnitType_Effect"
     # AU_SANDBOX_SAFE TRUE
     # AAX_CATEGORY ""
