@@ -1,9 +1,3 @@
 [submodule "libs/JUCE"]
 	path = libs/JUCE
 	url = git@github.com:juce-framework/JUCE.git
-[submodule "libs/benchmark"]
-	path = libs/benchmark
-	url = git@github.com:google/benchmark.git
-[submodule "libs/googletest"]
-	path = libs/googletest
-	url = git@github.com:google/googletest.git

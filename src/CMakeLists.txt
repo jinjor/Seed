@@ -52,7 +52,6 @@ target_compile_definitions(SeedPlugin
 
 target_link_libraries(SeedPlugin
     PUBLIC
-        SeedPluginBinaries
         juce::juce_audio_basics
         juce::juce_audio_devices
         juce::juce_audio_formats

@@ -2,9 +2,6 @@
 
 #include <JuceHeader.h>
 
-#include "Params.h"
-#include "Voice.h"
-
 //==============================================================================
 class TimeConsumptionState {
 public:
@@ -134,21 +131,9 @@ public:
     void setStateInformation(const void *data, int sizeInBytes) override;
 
     //==============================================================================
-    void copyToClipboard();
-    void pasteFromClipboard();
-
-    //==============================================================================
     int currentProgram = 0;
     juce::MidiKeyboardState keyboardState;
     LatestDataProvider latestDataProvider;
-    int polyphony = 0;
-    TimeConsumptionState timeConsumptionState;
-    CurrentPositionInfo currentPositionInfo;
-
-    AllParams allParams;
-
-    juce::AudioBuffer<float> buffer;
-    SeedSynthesiser synth;
 
 private:
     //==============================================================================

@@ -3,7 +3,6 @@
 #include <JuceHeader.h>
 
 #include "LookAndFeel.h"
-#include "Params.h"
 #include "PluginProcessor.h"
 #include "StyleConstants.h"
 
@@ -372,60 +371,9 @@ private:
 };
 
 //==============================================================================
-class VoiceComponent : public juce::Component,
-                       IncDecButton::Listener,
-                       juce::ComboBox::Listener,
-                       private juce::Timer,
-                       ComponentHelper {
-public:
-    VoiceComponent(AllParams& allParams);
-    virtual ~VoiceComponent();
-    VoiceComponent(const VoiceComponent&) = delete;
-
-    virtual void paint(juce::Graphics& g) override;
-    virtual void resized() override;
-
-private:
-    virtual void incDecValueChanged(IncDecButton* button) override;
-    virtual void comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) override;
-    virtual void timerCallback() override;
-
-    AllParams& allParams;
-
-    IncDecButton pitchBendRangeButton;
-    juce::ComboBox timberSelector;
-
-    juce::Label pitchBendRangeLabel;
-    juce::Label timberLabel;
-};
-
-//==============================================================================
-class UtilComponent : public juce::Component, juce::Button::Listener, private ComponentHelper {
-public:
-    UtilComponent(SeedAudioProcessor& processor);
-    virtual ~UtilComponent();
-    UtilComponent(const UtilComponent&) = delete;
-
-    virtual void paint(juce::Graphics& g) override;
-
-    virtual void resized() override;
-
-private:
-    SeedAudioProcessor& processor;
-
-    virtual void buttonClicked(juce::Button* button) override;
-
-    juce::TextButton copyToClipboardButton;
-    juce::TextButton pasteFromClipboardButton;
-
-    juce::Label copyToClipboardLabel;
-    juce::Label pasteFromClipboardLabel;
-};
-
-//==============================================================================
 class StatusComponent : public juce::Component, private juce::Timer, ComponentHelper {
 public:
-    StatusComponent(int* polyphony, TimeConsumptionState* timeConsumptionState, LatestDataProvider* latestDataProvider);
+    StatusComponent(LatestDataProvider* latestDataProvider);
     virtual ~StatusComponent();
     StatusComponent(const StatusComponent&) = delete;
 
@@ -434,224 +382,18 @@ public:
 
 private:
     virtual void timerCallback() override;
-    int* polyphony;
     TimeConsumptionState* timeConsumptionState;
     LatestDataProvider* latestDataProvider;
 
     juce::Label volumeValueLabel;
-    juce::Label polyphonyValueLabel;
-    juce::Label timeConsumptionValueLabel;
 
     juce::Label volumeLabel;
-    juce::Label polyphonyLabel;
-    juce::Label timeConsumptionLabel;
 
     float levelDataL[2048];
     float levelDataR[2048];
     LatestDataProvider::Consumer levelConsumer{levelDataL, levelDataR, 2048, false};
     float overflowedLevel = 0;
     int overflowWarning = 0;
-};
-
-//==============================================================================
-class MasterComponent : public juce::Component, juce::Slider::Listener, private juce::Timer, ComponentHelper {
-public:
-    MasterComponent(AllParams& allParams);
-    virtual ~MasterComponent();
-    MasterComponent(const MasterComponent&) = delete;
-
-    virtual void paint(juce::Graphics& g) override;
-
-    virtual void resized() override;
-
-private:
-    virtual void sliderValueChanged(juce::Slider* slider) override;
-    virtual void timerCallback() override;
-
-    AllParams& allParams;
-
-    juce::Slider panSlider;
-    juce::Slider volumeSlider;
-
-    juce::Label panLabel;
-    juce::Label volumeLabel;
-
-    MasterParams& getSelectedOscParams() { return allParams.masterParams; }
-};
-
-//==============================================================================
-class OscComponent : public juce::Component,
-                     juce::Slider::Listener,
-                     juce::Button::Listener,
-                     private juce::Timer,
-                     ComponentHelper {
-public:
-    OscComponent(int index, AllParams& allParams);
-    virtual ~OscComponent();
-    OscComponent(const OscComponent&) = delete;
-
-    virtual void paint(juce::Graphics& g) override;
-    virtual void resized() override;
-
-private:
-    virtual void sliderValueChanged(juce::Slider* slider) override;
-    virtual void buttonClicked(juce::Button* button) override;
-    virtual void timerCallback() override;
-    int index;
-
-    AllParams& allParams;
-
-    juce::ToggleButton newEnvelopeToggle;
-    juce::Slider gainSlider;
-    juce::Slider attackCurveSlider;
-    juce::Slider attackSlider;
-    juce::Slider decaySlider;
-    juce::Slider releaseSlider;
-
-    juce::Label newEnvelopeLabel;
-    juce::Label gainLabel;
-    juce::Label attackCurveLabel;
-    juce::Label attackLabel;
-    juce::Label decayLabel;
-    juce::Label releaseLabel;
-
-    OscParams& getSelectedOscParams() { return allParams.getCurrentMainParams().oscParams[index]; }
-    EnvelopeParams& getSelectedEnvelopeParams() {
-        // sync 先を表示した方がいいかもしれない
-        return allParams.getCurrentMainParams().envelopeParams[index];
-    }
-};
-
-//==============================================================================
-class FilterComponent : public juce::Component,
-                        juce::ToggleButton::Listener,
-                        juce::ComboBox::Listener,
-                        juce::Slider::Listener,
-                        private juce::Timer,
-                        ComponentHelper {
-public:
-    FilterComponent(int index, AllParams& allParams);
-    virtual ~FilterComponent();
-    FilterComponent(const FilterComponent&) = delete;
-
-    virtual void paint(juce::Graphics& g) override;
-
-    virtual void resized() override;
-
-private:
-    virtual void buttonClicked(juce::Button* button) override;
-    virtual void comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) override;
-    virtual void sliderValueChanged(juce::Slider* slider) override;
-    virtual void timerCallback() override;
-    int index;
-
-    AllParams& allParams;
-
-    juce::ComboBox typeSelector;
-    juce::ToggleButton freqTypeToggle;
-    juce::Slider hzSlider;
-    juce::Slider semitoneSlider;
-    juce::Slider qSlider;
-    juce::Slider gainSlider;
-
-    juce::Label targetLabel;
-    juce::Label typeLabel;
-    juce::Label freqTypeLabel;
-    juce::Label freqLabel;
-    juce::Label qLabel;
-    juce::Label gainLabel;
-
-    FilterParams& getSelectedFilterParams() { return allParams.filterParams[index]; }
-};
-
-//==============================================================================
-class ModEnvComponent : public juce::Component,
-                        juce::ComboBox::Listener,
-                        juce::Slider::Listener,
-                        private juce::Timer,
-                        ComponentHelper {
-public:
-    ModEnvComponent(int index, AllParams& allParams);
-    virtual ~ModEnvComponent();
-    ModEnvComponent(const ModEnvComponent&) = delete;
-
-    virtual void paint(juce::Graphics& g) override;
-    virtual void resized() override;
-
-private:
-    virtual void comboBoxChanged(juce::ComboBox* comboBox) override;
-    virtual void sliderValueChanged(juce::Slider* slider) override;
-    virtual void timerCallback() override;
-    int index;
-
-    AllParams& allParams;
-
-    juce::Component targetSelector;
-
-    juce::ComboBox targetTypeSelector;
-    juce::ComboBox targetFilterSelector;
-    juce::ComboBox targetFilterParamSelector;
-    juce::ComboBox fadeSelector;
-    juce::Slider peakFreqSlider;
-    juce::Slider waitSlider;
-    juce::Slider attackSlider;
-    juce::Slider decaySlider;
-
-    juce::Label targetLabel;
-    juce::Label typeLabel;
-    juce::Label fadeLabel;
-    juce::Label peakFreqLabel;
-    juce::Label waitLabel;
-    juce::Label attackLabel;
-    juce::Label decayLabel;
-
-    ModEnvParams& getSelectedModEnvParams() { return allParams.modEnvParams[index]; }
-};
-
-//==============================================================================
-class DelayComponent : public juce::Component,
-                       juce::ToggleButton::Listener,
-                       juce::ComboBox::Listener,
-                       juce::Slider::Listener,
-                       private juce::Timer,
-                       ComponentHelper {
-public:
-    DelayComponent(AllParams& allParams);
-    virtual ~DelayComponent();
-    DelayComponent(const DelayComponent&) = delete;
-
-    virtual void paint(juce::Graphics& g) override;
-    virtual void resized() override;
-
-private:
-    virtual void buttonClicked(juce::Button* button) override;
-    virtual void comboBoxChanged(juce::ComboBox* comboBox) override;
-    virtual void sliderValueChanged(juce::Slider* slider) override;
-    virtual void timerCallback() override;
-
-    AllParams& allParams;
-
-    juce::ComboBox typeSelector;
-    juce::ToggleButton syncToggle;
-    juce::Slider timeLSlider;
-    juce::Slider timeRSlider;
-    juce::Slider timeSyncLSlider;
-    juce::Slider timeSyncRSlider;
-    juce::Slider lowFreqSlider;
-    juce::Slider highFreqSlider;
-    juce::Slider feedbackSlider;
-    juce::Slider mixSlider;
-
-    juce::Label typeLabel;
-    juce::Label syncLabel;
-    juce::Label timeLLabel;
-    juce::Label timeRLabel;
-    juce::Label lowFreqLabel;
-    juce::Label highFreqLabel;
-    juce::Label feedbackLabel;
-    juce::Label mixLabel;
-
-    DelayParams& getSelectedDelayParams() { return allParams.delayParams; }
 };
 
 //==============================================================================
@@ -738,26 +480,6 @@ private:
     float overflowedLevelR = 0;
     int overflowWarningL = 0;
     int overflowWarningR = 0;
-
-    // Filter
-    Filter filters[NUM_FILTER];
-    class SimpleFilterParams {
-    public:
-        SimpleFilterParams() {}
-        SimpleFilterParams(const SimpleFilterParams&) = delete;
-        bool enabled = false;
-        int type = -1;
-        float freq = 0;
-        float q = 0;
-        float gain = 0;
-        bool equals(SimpleFilterParams& p) {
-            return enabled == p.enabled && type == p.type && freq == p.freq && q == p.q & gain == p.gain;
-        }
-    };
-    SimpleFilterParams lastFilterParams[NUM_FILTER];
-    int relNoteNumber = 69;
-    float filterSource[fftSize * 2]{};
-    float scopeDataForFilter[NUM_FILTER][scopeSize]{};
 
     // methods
     virtual void timerCallback() override;

@@ -1,8 +1,6 @@
 #include "PluginProcessor.h"
 
-#include "Params.h"
 #include "PluginEditor.h"
-#include "Voice.h"
 
 //==============================================================================
 SeedAudioProcessor::SeedAudioProcessor()
@@ -14,13 +12,9 @@ SeedAudioProcessor::SeedAudioProcessor()
 #endif
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-                         )
+      )
 #endif
-      ,
-      allParams{},
-      buffer{2, 0},
-      synth(&currentPositionInfo, buffer, allParams) {
-    allParams.addAllParameters(*this);
+{
 }
 
 SeedAudioProcessor::~SeedAudioProcessor() { DBG("SeedAudioProcessor's destructor called."); }
@@ -79,7 +73,6 @@ void SeedAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     std::cout << "sampleRate: " << sampleRate << std::endl;
     std::cout << "totalNumInputChannels: " << getTotalNumInputChannels() << std::endl;
     std::cout << "totalNumOutputChannels: " << getTotalNumOutputChannels() << std::endl;
-    synth.setCurrentPlaybackSampleRate(sampleRate);
 }
 
 void SeedAudioProcessor::releaseResources() { std::cout << "releaseResources" << std::endl; }
@@ -110,46 +103,13 @@ bool SeedAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) cons
 
 void SeedAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
     auto busCount = getBusCount(false);
-    buffer.clear();
-    if (auto* playHead = getPlayHead()) {
-        if (auto positionInfo = playHead->getPosition()) {
-            currentPositionInfo.bpm = *positionInfo->getBpm();
-        }
-    }
-    int numVoices = 64;
-    if (synth.getNumVoices() != numVoices) {
-        synth.clearVoices();
-        for (auto i = 0; i < numVoices; ++i) {
-            synth.addVoice(new SeedVoice(&currentPositionInfo, buffer, allParams));
-        }
-    }
+
     auto numSamples = buffer.getNumSamples();
 
     keyboardState.processNextMidiBuffer(midiMessages, 0, numSamples, true);
-    double startMillis = juce::Time::getMillisecondCounterHiRes();
-    synth.renderNextBlock(buffer, midiMessages, 0, numSamples);  // don't upcast
-    double endMillis = juce::Time::getMillisecondCounterHiRes();
-    timeConsumptionState.push(getSampleRate(), numSamples, (endMillis - startMillis) / 1000);
-
-    polyphony = 0;
-    for (auto i = 0; i < synth.getNumVoices(); ++i) {
-        if (synth.getVoice(i)->isVoiceActive()) {
-            polyphony++;
-        }
-    }
     latestDataProvider.push(buffer);
 
     midiMessages.clear();
-#if JUCE_DEBUG
-    // auto* leftIn = buffer.getReadPointer(0);
-    // auto* rightIn = buffer.getReadPointer(1);
-    // for (int i = 0; i < buffer.getNumSamples(); ++i) {
-    //     jassert(leftIn[i] >= -1);
-    //     jassert(leftIn[i] <= 1);
-    //     jassert(rightIn[i] >= -1);
-    //     jassert(rightIn[i] <= 1);
-    // }
-#endif
 }
 
 //==============================================================================
@@ -160,33 +120,15 @@ juce::AudioProcessorEditor* SeedAudioProcessor::createEditor() { return new Seed
 //==============================================================================
 void SeedAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     // TODO: ValueTree でもできるらしいので調べる
-    juce::XmlElement xml("SeedInstrument");
-    allParams.saveParameters(xml);
-    copyXmlToBinary(xml, destData);
+    // juce::XmlElement xml("SeedInstrument");
+    // copyXmlToBinary(xml, destData);
 }
 void SeedAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
     std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml && xml->hasTagName("SeedInstrument")) {
-        allParams.loadParameters(*xml);
-    }
+    // if (xml && xml->hasTagName("SeedInstrument")) {
+    // }
 }
 
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new SeedAudioProcessor(); }
-
-//==============================================================================
-void SeedAudioProcessor::copyToClipboard() {
-    // TODO: ValueTree でもできるらしいので調べる
-    juce::XmlElement xml("SeedInstrumentClipboard");
-    allParams.saveParametersToClipboard(xml);
-    juce::SystemClipboard::copyTextToClipboard(xml.toString());
-}
-void SeedAudioProcessor::pasteFromClipboard() {
-    auto text = juce::SystemClipboard::getTextFromClipboard();
-    DBG(text);
-    auto xml = juce::parseXML(text);
-    if (xml && xml->hasTagName("SeedInstrumentClipboard")) {
-        allParams.loadParametersFromClipboard(*xml);
-    }
-}
