@@ -91,6 +91,59 @@ private:
 };
 
 //==============================================================================
+
+namespace {
+constexpr int MAX_REC_SAMPLES = 48000 * 4;
+}  // namespace
+class Recorder {
+public:
+    class Consumer {
+    public:
+        float dataL[MAX_REC_SAMPLES]{};
+        float dataR[MAX_REC_SAMPLES]{};
+        int cursor = 0;
+        bool recording = false;
+    };
+    std::vector<Consumer *> consumers{};
+
+    Recorder(){};
+    ~Recorder(){};
+    void addConsumer(Consumer *c) {
+        std::lock_guard<std::mutex> lock(mtx);
+        consumers.push_back(c);
+    }
+    void removeConsumer(Consumer *c) {
+        std::lock_guard<std::mutex> lock(mtx);
+        consumers.erase(remove(consumers.begin(), consumers.end(), c), consumers.end());
+    }
+    void push(juce::AudioBuffer<float> &buffer) {
+        if (buffer.getNumChannels() <= 0) {
+            return;
+        }
+        std::lock_guard<std::mutex> lock(mtx);
+        auto *dataL = buffer.getReadPointer(0);
+        auto *dataR = buffer.getReadPointer(1);
+        for (auto *consumer : consumers) {
+            for (auto i = 0; i < buffer.getNumSamples(); ++i) {
+                if (MAX_REC_SAMPLES <= consumer->cursor) {
+                    consumer->recording = false;
+                    consumer->cursor = 0;
+                }
+                if (!consumer->recording) {
+                    break;
+                }
+                consumer->dataL[consumer->cursor] = dataL[i];
+                consumer->dataR[consumer->cursor] = dataR[i];
+                consumer->cursor++;
+            }
+        }
+    }
+
+private:
+    std::mutex mtx;
+};
+
+//==============================================================================
 class SeedAudioProcessor : public juce::AudioProcessor {
 public:
     //==============================================================================
@@ -134,6 +187,7 @@ public:
     int currentProgram = 0;
     juce::MidiKeyboardState keyboardState;
     LatestDataProvider latestDataProvider;
+    Recorder recorder;
 
 private:
     //==============================================================================

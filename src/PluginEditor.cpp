@@ -11,12 +11,14 @@ SeedAudioProcessorEditor::SeedAudioProcessorEditor(SeedAudioProcessor &p)
       audioProcessor(p),
       analyserToggle(&analyserMode),
       analyserWindow(&analyserMode, &p.latestDataProvider),
-      statusComponent(&p.latestDataProvider) {
+      statusComponent(&p.latestDataProvider),
+      analyserWindow2(p.recorder) {
     getLookAndFeel().setColour(juce::Label::textColourId, colour::TEXT);
 
     addAndMakeVisible(analyserToggle);
     addAndMakeVisible(analyserWindow);
     addAndMakeVisible(statusComponent);
+    addAndMakeVisible(analyserWindow2);
 
     setSize(1024, 768);
 #if JUCE_DEBUG
@@ -72,6 +74,10 @@ void SeedAudioProcessorEditor::resized() {
         analyserToggle.setBounds(upperArea.removeFromLeft(analyserToggleWidth).reduced(3));
         analyserWindow.setBounds(upperArea.removeFromLeft(centreWidth).reduced(3));
         statusComponent.setBounds(upperArea.removeFromLeft(statusWidth));
+    }
+    {
+        auto middleArea = bounds.removeFromTop(middleHeight).reduced(AREA_PADDING_X, AREA_PADDING_Y);
+        analyserWindow2.setBounds(middleArea.reduced(30));
     }
 }
 void SeedAudioProcessorEditor::timerCallback() {}

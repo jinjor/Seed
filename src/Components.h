@@ -498,3 +498,48 @@ private:
         return processedFFTData[index] * (1 - frac) + processedFFTData[index + 1] * frac;
     }
 };
+
+//==============================================================================
+namespace {
+constexpr int FREQ_SCOPE_SIZE = 512;
+constexpr int TIME_SCOPE_SIZE = 1024;
+constexpr int FFT_ORDER = 11;
+constexpr int FFT_SIZE = 2048;
+}  // namespace
+class AnalyserWindow2 : public juce::Component, juce::Button::Listener, private juce::Timer {
+public:
+    AnalyserWindow2(Recorder& recorder);
+    virtual ~AnalyserWindow2();
+    AnalyserWindow2(const AnalyserWindow2&) = delete;
+
+    virtual void paint(juce::Graphics& g) override;
+    virtual void resized() override;
+
+private:
+    SeedLookAndFeel seedLookAndFeel;
+
+    Recorder& recorder;
+    juce::dsp::FFT forwardFFT;
+    juce::dsp::WindowingFunction<float> window;
+    Recorder::Consumer fftConsumer{};
+    float allFftData[TIME_SCOPE_SIZE][FFT_SIZE * 2]{};
+    float allScopeData[TIME_SCOPE_SIZE][FREQ_SCOPE_SIZE]{};
+    bool calculated = false;
+
+    juce::ToggleButton recordingButton;
+
+    // methods
+    virtual void timerCallback() override;
+    void drawNextFrameOfSpectrum(int timeScopeIndex);
+    void paintSpectrum(juce::Graphics& g, juce::Colour colour, int offsetX, int offsetY, int width, int height);
+    static float xToHz(float minFreq, float maxFreq, float notmalizedX) {
+        return minFreq * std::pow(maxFreq / minFreq, notmalizedX);
+    }
+    static float getFFTDataByHz(float* processedFFTData, float fftSize, float sampleRate, float hz) {
+        float indexFloat = hz * ((fftSize * 0.5) / (sampleRate * 0.5));
+        int index = indexFloat;
+        float frac = indexFloat - index;
+        return processedFFTData[index] * (1 - frac) + processedFFTData[index + 1] * frac;
+    }
+    virtual void buttonClicked(juce::Button* button) override;
+};

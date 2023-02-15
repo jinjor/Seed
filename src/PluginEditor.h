@@ -22,6 +22,7 @@ private:
     AnalyserToggle analyserToggle;
     AnalyserWindow analyserWindow;
     StatusComponent statusComponent;
+    AnalyserWindow2 analyserWindow2;
 
     virtual void timerCallback() override;
     virtual void enabledChanged(SectionComponent *section) override;

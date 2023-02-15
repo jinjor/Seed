@@ -108,6 +108,7 @@ void SeedAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
 
     keyboardState.processNextMidiBuffer(midiMessages, 0, numSamples, true);
     latestDataProvider.push(buffer);
+    recorder.push(buffer);
 
     midiMessages.clear();
 }
