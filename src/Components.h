@@ -503,6 +503,8 @@ private:
 namespace {
 constexpr int FREQ_SCOPE_SIZE = 512;
 constexpr int TIME_SCOPE_SIZE = 1024;
+constexpr int ENVELOPE_VIEW_HEIGHT = 100;
+constexpr int SPECTRUM_VIEW_WIDTH = 100;
 constexpr int FFT_ORDER = 11;
 constexpr int FFT_SIZE = 2048;
 }  // namespace
@@ -527,13 +529,16 @@ private:
     bool calculated = false;
 
     juce::ToggleButton recordingButton;
-    juce::Image image;
     juce::ImageComponent imageComponent;
+    juce::ImageComponent envelopeView;
+    juce::ImageComponent spectrumView;
 
     // methods
     virtual void timerCallback() override;
     void calculateSpectrum(int timeScopeIndex);
-    void drawImage(juce::Graphics& g);
+    void drawImage();
+    void drawEnvelopeView();
+    void drawSpectrumView();
     static float xToHz(float minFreq, float maxFreq, float notmalizedX) {
         return minFreq * std::pow(maxFreq / minFreq, notmalizedX);
     }
