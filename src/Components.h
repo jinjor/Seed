@@ -527,11 +527,13 @@ private:
     bool calculated = false;
 
     juce::ToggleButton recordingButton;
+    juce::Image image;
+    juce::ImageComponent imageComponent;
 
     // methods
     virtual void timerCallback() override;
-    void drawNextFrameOfSpectrum(int timeScopeIndex);
-    void paintSpectrum(juce::Graphics& g, juce::Colour colour, int offsetX, int offsetY, int width, int height);
+    void calculateSpectrum(int timeScopeIndex);
+    void drawImage(juce::Graphics& g);
     static float xToHz(float minFreq, float maxFreq, float notmalizedX) {
         return minFreq * std::pow(maxFreq / minFreq, notmalizedX);
     }

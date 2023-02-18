@@ -422,8 +422,14 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder)
     : recorder(recorder),
       forwardFFT(FFT_ORDER),
       window(FFT_SIZE, juce::dsp::WindowingFunction<float>::hann),
-      recordingButton{"Record"} {
+      recordingButton{"Record"},
+      image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, FREQ_SCOPE_SIZE, true} {
     recorder.addConsumer(&fftConsumer);
+
+    imageComponent.setImage(image);
+    imageComponent.setImagePlacement(juce::RectanglePlacement::stretchToFit);
+    addAndMakeVisible(imageComponent);
+
     recordingButton.setLookAndFeel(&seedLookAndFeel);
     recordingButton.addListener(this);
     addAndMakeVisible(recordingButton);
@@ -434,6 +440,7 @@ AnalyserWindow2::~AnalyserWindow2() { recorder.removeConsumer(&fftConsumer); }
 
 void AnalyserWindow2::resized() {
     juce::Rectangle<int> bounds = getLocalBounds();
+    imageComponent.setBounds(bounds);
     recordingButton.setBounds(bounds.removeFromTop(30).removeFromLeft(100));
 }
 void AnalyserWindow2::timerCallback() {
@@ -442,10 +449,11 @@ void AnalyserWindow2::timerCallback() {
 
     if (!calculated && !fftConsumer.recording) {
         for (int t = 0; t < TIME_SCOPE_SIZE; ++t) {
-            DBG("drawing " << t);
-            drawNextFrameOfSpectrum(t);
+            calculateSpectrum(t);
         }
         calculated = true;
+        Graphics g2(image);
+        drawImage(g2);
         repaint();
     }
     startTimerHz(30.0f);
@@ -453,7 +461,7 @@ void AnalyserWindow2::timerCallback() {
     recordingButton.setEnabled(!fftConsumer.recording);
 }
 
-void AnalyserWindow2::drawNextFrameOfSpectrum(int timeScopeIndex) {
+void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
     int sampleIndex = ((float)timeScopeIndex / (float)TIME_SCOPE_SIZE) * MAX_REC_SAMPLES;
     jassert(sampleIndex >= 0);
     jassert(sampleIndex < MAX_REC_SAMPLES);
@@ -485,37 +493,16 @@ void AnalyserWindow2::drawNextFrameOfSpectrum(int timeScopeIndex) {
         scopeData[i] = level;
     }
 }
-
-void AnalyserWindow2::paint(juce::Graphics& g) {
-    g.fillAll(colour::ANALYSER_BACKGROUND);
-
-    juce::Rectangle<int> bounds = getLocalBounds();
-
-    auto offsetX = 2;
-    auto offsetY = 2;
-    auto displayBounds = bounds.reduced(offsetX, offsetY);
-    auto height = displayBounds.getHeight();
-
-    auto spectrumWidth = displayBounds.getWidth();
-    paintSpectrum(g, colour::ANALYSER_LINE, offsetX, offsetY, spectrumWidth, height);
-
-    g.setColour(colour::ANALYSER_BORDER);
-    g.drawRect(bounds, 2.0f);
-}
-void AnalyserWindow2::paintSpectrum(
-    juce::Graphics& g, juce::Colour colour, int offsetX, int offsetY, int width, int height) {
-    g.setColour(colour);
+void AnalyserWindow2::drawImage(juce::Graphics& g) {
     for (int t = 0; t < TIME_SCOPE_SIZE; ++t) {
         auto& scopeData = allScopeData[t];
         for (int i = 0; i < FREQ_SCOPE_SIZE; ++i) {
             g.setColour(Colour::greyLevel(scopeData[i]));
-            g.drawRect(offsetX + (float)width * (float)t / (float)TIME_SCOPE_SIZE,
-                       offsetY + (float)height * (1.0f - (float)i / (float)FREQ_SCOPE_SIZE),
-                       (float)width / (float)TIME_SCOPE_SIZE,
-                       (float)height / (float)FREQ_SCOPE_SIZE);
+            g.drawRect(t, FREQ_SCOPE_SIZE - i, 1, 1);
         }
     }
 }
+void AnalyserWindow2::paint(juce::Graphics& g) {}
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
     if (button == &recordingButton) {
         calculated = false;
