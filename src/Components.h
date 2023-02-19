@@ -12,6 +12,19 @@ enum class ANALYSER_MODE { Spectrum };
 
 //==============================================================================
 
+class JustRectangle : public Component {
+public:
+    JustRectangle(Colour colour);
+    ~JustRectangle() override;
+
+private:
+    Colour colour;
+    virtual void paint(juce::Graphics& g) override;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(JustRectangle)
+};
+
+//==============================================================================
+
 class ArrowButton2 : public Button {
 public:
     ArrowButton2(const String& buttonName, float arrowDirection, Colour arrowColour);
@@ -503,10 +516,10 @@ private:
 namespace {
 constexpr int FREQ_SCOPE_SIZE = 512;
 constexpr int TIME_SCOPE_SIZE = 1024;
-constexpr int ENVELOPE_VIEW_HEIGHT = 100;
-constexpr int SPECTRUM_VIEW_WIDTH = 100;
-constexpr int FFT_ORDER = 11;
-constexpr int FFT_SIZE = 2048;
+constexpr int ENVELOPE_VIEW_HEIGHT = 200;
+constexpr int SPECTRUM_VIEW_WIDTH = 200;
+constexpr int FFT_ORDER = 12;
+constexpr int FFT_SIZE = 4096;
 }  // namespace
 class AnalyserWindow2 : public juce::Component, juce::Button::Listener, private juce::Timer {
 public:
@@ -527,16 +540,23 @@ private:
     float allFftData[TIME_SCOPE_SIZE][FFT_SIZE * 2]{};
     float allScopeData[TIME_SCOPE_SIZE][FREQ_SCOPE_SIZE]{};
     bool calculated = false;
+    int focusedTimeIndex = TIME_SCOPE_SIZE / 2;
+    int focusedFreqIndex = FREQ_SCOPE_SIZE / 2;
 
     juce::ToggleButton recordingButton;
-    juce::ImageComponent imageComponent;
+    juce::ImageComponent heatMap;
+    JustRectangle envelopeLine;
+    JustRectangle spectrumLine;
     juce::ImageComponent envelopeView;
     juce::ImageComponent spectrumView;
 
     // methods
     virtual void timerCallback() override;
+    virtual void buttonClicked(juce::Button* button) override;
+    virtual void mouseDown(const MouseEvent& event) override;
+
     void calculateSpectrum(int timeScopeIndex);
-    void drawImage();
+    void drawHeatMap();
     void drawEnvelopeView();
     void drawSpectrumView();
     static float xToHz(float minFreq, float maxFreq, float notmalizedX) {
@@ -548,5 +568,4 @@ private:
         float frac = indexFloat - index;
         return processedFFTData[index] * (1 - frac) + processedFFTData[index + 1] * frac;
     }
-    virtual void buttonClicked(juce::Button* button) override;
 };

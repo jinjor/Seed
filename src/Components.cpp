@@ -78,6 +78,16 @@ void SectionComponent::buttonClicked(juce::Button* button) {
 }
 
 //==============================================================================
+
+JustRectangle::JustRectangle(Colour colour) : colour(colour) {}
+JustRectangle::~JustRectangle() {}
+void JustRectangle::paint(juce::Graphics& g) {
+    auto bounds = getLocalBounds();
+    g.setColour(colour);
+    g.fillAll();
+}
+
+//==============================================================================
 ArrowButton2::ArrowButton2(const String& name, float arrowDirectionInRadians, Colour arrowColour)
     : Button(name), colour(arrowColour) {
     path.addTriangle(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.5f);
@@ -424,15 +434,20 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder)
     : recorder(recorder),
       forwardFFT(FFT_ORDER),
       window(FFT_SIZE, juce::dsp::WindowingFunction<float>::hann),
+      envelopeLine{colour::ENVELOPE_LINE},
+      spectrumLine{colour::SPECTRUM_LINE},
       recordingButton{"Record"} {
     recorder.addConsumer(&fftConsumer);
 
     {
         auto image = juce::Image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, FREQ_SCOPE_SIZE, true};
-        imageComponent.setImage(image);
-        imageComponent.setImagePlacement(juce::RectanglePlacement::stretchToFit);
-        addAndMakeVisible(imageComponent);
+        heatMap.setImage(image);
+        heatMap.setImagePlacement(juce::RectanglePlacement::stretchToFit);
+        addAndMakeVisible(heatMap);
+        heatMap.addMouseListener(this, false);
     }
+    addAndMakeVisible(envelopeLine);
+    addAndMakeVisible(spectrumLine);
     {
         auto image = juce::Image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, ENVELOPE_VIEW_HEIGHT, true};
         envelopeView.setImage(image);
@@ -460,7 +475,7 @@ void AnalyserWindow2::resized() {
     float width = bounds.getWidth();
     float height = bounds.getHeight();
 
-    imageComponent.setBounds(getLocalBounds().removeFromTop(height * 0.8).removeFromLeft(width * 0.8));
+    heatMap.setBounds(getLocalBounds().removeFromTop(height * 0.8).removeFromLeft(width * 0.8));
     envelopeView.setBounds(getLocalBounds().removeFromBottom(height * 0.2).removeFromLeft(width * 0.8));
     spectrumView.setBounds(getLocalBounds().removeFromTop(height * 0.8).removeFromRight(width * 0.2));
     recordingButton.setBounds(getLocalBounds().removeFromTop(30).removeFromLeft(100));
@@ -474,16 +489,38 @@ void AnalyserWindow2::timerCallback() {
             calculateSpectrum(t);
         }
         calculated = true;
-        drawImage();
+        drawHeatMap();
         drawEnvelopeView();
         drawSpectrumView();
         repaint();
     }
     startTimerHz(30.0f);
 
+    auto heatMapBounds = heatMap.getBounds();
+    envelopeLine.setBounds((float)0,
+                           heatMapBounds.getHeight() * (1.0f - (float)focusedFreqIndex / FREQ_SCOPE_SIZE),
+                           heatMapBounds.getWidth(),
+                           1);
+    spectrumLine.setBounds(
+        heatMapBounds.getWidth() * (float)focusedTimeIndex / TIME_SCOPE_SIZE, (float)0, 1, heatMapBounds.getHeight());
     recordingButton.setEnabled(!fftConsumer.recording);
 }
-
+void AnalyserWindow2::buttonClicked(juce::Button* button) {
+    if (button == &recordingButton) {
+        calculated = false;
+        fftConsumer.recording = true;
+        recordingButton.setToggleState(false, juce::dontSendNotification);
+        recordingButton.setEnabled(false);
+    }
+}
+void AnalyserWindow2::mouseDown(const MouseEvent& event) {
+    auto bounds = heatMap.getBounds();
+    focusedTimeIndex = TIME_SCOPE_SIZE * ((float)event.x / bounds.getWidth());
+    focusedFreqIndex = FREQ_SCOPE_SIZE * (1.0f - (float)event.y / bounds.getHeight());
+    drawEnvelopeView();
+    drawSpectrumView();
+    repaint();
+}
 void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
     int sampleIndex = ((float)timeScopeIndex / (float)TIME_SCOPE_SIZE) * MAX_REC_SAMPLES;
     jassert(sampleIndex >= 0);
@@ -516,8 +553,8 @@ void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
         scopeData[i] = level;
     }
 }
-void AnalyserWindow2::drawImage() {
-    Graphics g(imageComponent.getImage());
+void AnalyserWindow2::drawHeatMap() {
+    Graphics g(heatMap.getImage());
     for (int t = 0; t < TIME_SCOPE_SIZE; ++t) {
         auto& scopeData = allScopeData[t];
         for (int i = 0; i < FREQ_SCOPE_SIZE; ++i) {
@@ -531,8 +568,8 @@ void AnalyserWindow2::drawEnvelopeView() {
     Graphics g(image);
     g.setColour(juce::Colours::black);
     g.fillRect(image.getBounds());
-    g.setColour(juce::Colours::white);
-    int y = FREQ_SCOPE_SIZE / 2;  // TODO
+    g.setColour(colour::ENVELOPE_LINE);
+    int y = focusedFreqIndex;
     for (int x = 1; x < TIME_SCOPE_SIZE; ++x) {
         auto& prev = allScopeData[x - 1][y];
         auto& curr = allScopeData[x][y];
@@ -544,20 +581,15 @@ void AnalyserWindow2::drawSpectrumView() {
     Graphics g(image);
     g.setColour(juce::Colours::black);
     g.fillRect(image.getBounds());
-    g.setColour(juce::Colours::white);
-    int x = TIME_SCOPE_SIZE / 2;  // TODO
+    g.setColour(colour::SPECTRUM_LINE);
+    int x = focusedTimeIndex;
     for (int y = 1; y < FREQ_SCOPE_SIZE; ++y) {
         auto& prev = allScopeData[x][y - 1];
         auto& curr = allScopeData[x][y];
-        g.drawLine({prev * SPECTRUM_VIEW_WIDTH, (float)y - 1, curr * SPECTRUM_VIEW_WIDTH, (float)y});
+        g.drawLine({prev * SPECTRUM_VIEW_WIDTH,
+                    ((float)FREQ_SCOPE_SIZE - 1) - ((float)y - 1),
+                    curr * SPECTRUM_VIEW_WIDTH,
+                    ((float)FREQ_SCOPE_SIZE - 1) - (float)y});
     }
 }
 void AnalyserWindow2::paint(juce::Graphics& g) {}
-void AnalyserWindow2::buttonClicked(juce::Button* button) {
-    if (button == &recordingButton) {
-        calculated = false;
-        fftConsumer.recording = true;
-        recordingButton.setToggleState(false, juce::dontSendNotification);
-        recordingButton.setEnabled(false);
-    }
-}
