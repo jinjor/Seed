@@ -526,12 +526,10 @@ void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
     int sampleIndex = ((float)timeScopeIndex / (float)TIME_SCOPE_SIZE) * MAX_REC_SAMPLES;
     jassert(sampleIndex >= 0);
     jassert(sampleIndex < MAX_REC_SAMPLES);
-    if (sampleIndex + FFT_SIZE >= MAX_REC_SAMPLES) {
-        return;
-    }
     auto& fftData = allFftData[timeScopeIndex];
     for (int i = 0; i < FFT_SIZE; i++) {
-        fftData[i] = (fftConsumer.dataL[sampleIndex + i] + fftConsumer.dataR[sampleIndex + i]) * 0.5f;
+        auto dataIndex = sampleIndex - FFT_SIZE + i;
+        fftData[i] = dataIndex >= 0 ? (fftConsumer.dataL[dataIndex] + fftConsumer.dataR[dataIndex]) * 0.5f : 0;
         fftData[i + FFT_SIZE] = 0;
     }
     window.multiplyWithWindowingTable(fftData, FFT_SIZE);

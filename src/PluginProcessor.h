@@ -132,6 +132,9 @@ public:
                 if (!consumer->recording) {
                     break;
                 }
+                if (consumer->cursor == 0 && dataL[i] == 0 && dataR[i] == 0) {
+                    continue;
+                }
                 consumer->dataL[consumer->cursor] = dataL[i];
                 consumer->dataR[consumer->cursor] = dataR[i];
                 consumer->cursor++;
