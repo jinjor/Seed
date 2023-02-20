@@ -509,6 +509,7 @@ void AnalyserWindow2::buttonClicked(juce::Button* button) {
     if (button == &recordingButton) {
         calculated = false;
         fftConsumer.recording = true;
+        fftConsumer.cursor = 0;
         recordingButton.setToggleState(false, juce::dontSendNotification);
         recordingButton.setEnabled(false);
     }
