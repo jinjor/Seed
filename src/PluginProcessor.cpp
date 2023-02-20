@@ -120,14 +120,27 @@ juce::AudioProcessorEditor* SeedAudioProcessor::createEditor() { return new Seed
 
 //==============================================================================
 void SeedAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    // TODO: ValueTree でもできるらしいので調べる
-    // juce::XmlElement xml("SeedInstrument");
-    // copyXmlToBinary(xml, destData);
+    juce::XmlElement xml("SeedAnalyser");
+    if (recorder.consumers.size() > 0) {
+        auto& consumer = recorder.consumers[0];
+        // TODO: 本当はサイズをケチりたい
+        xml.setAttribute("DATA_L", juce::Base64::toBase64(&consumer->dataL, DATA_SIZE));
+        xml.setAttribute("DATA_R", juce::Base64::toBase64(&consumer->dataR, DATA_SIZE));
+    }
+    copyXmlToBinary(xml, destData);
 }
 void SeedAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
     std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    // if (xml && xml->hasTagName("SeedInstrument")) {
-    // }
+    if (xml && xml->hasTagName("SeedAnalyser")) {
+        DBG("DATA_L" << xml->getStringAttribute("DATA_L", ""));
+        if (recorder.consumers.size() > 0) {
+            auto& consumer = recorder.consumers[0];
+            MemoryOutputStream outL{consumer->dataL, DATA_SIZE};
+            MemoryOutputStream outR{consumer->dataR, DATA_SIZE};
+            juce::Base64::convertFromBase64(outL, xml->getStringAttribute("DATA_L", ""));
+            juce::Base64::convertFromBase64(outR, xml->getStringAttribute("DATA_R", ""));
+        }
+    }
 }
 
 //==============================================================================
