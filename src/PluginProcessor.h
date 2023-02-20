@@ -93,30 +93,24 @@ private:
 //==============================================================================
 
 namespace {
+constexpr int NUM_ENTRIES = 4;
 constexpr int MAX_REC_SAMPLES = 48000 * 4;
 constexpr int DATA_SIZE = sizeof(float) * MAX_REC_SAMPLES;
 }  // namespace
 class Recorder {
 public:
-    class Consumer {
+    class Entry {
     public:
+        Entry(const Entry &) = delete;
         float dataL[MAX_REC_SAMPLES]{};
         float dataR[MAX_REC_SAMPLES]{};
         int cursor = 0;
         bool recording = false;
     };
-    std::vector<Consumer *> consumers{};
+    std::array<Entry, NUM_ENTRIES> entries{};
 
     Recorder(){};
     ~Recorder(){};
-    void addConsumer(Consumer *c) {
-        std::lock_guard<std::mutex> lock(mtx);
-        consumers.push_back(c);
-    }
-    void removeConsumer(Consumer *c) {
-        std::lock_guard<std::mutex> lock(mtx);
-        consumers.erase(remove(consumers.begin(), consumers.end(), c), consumers.end());
-    }
     void push(juce::AudioBuffer<float> &buffer) {
         if (buffer.getNumChannels() <= 0) {
             return;
@@ -124,21 +118,21 @@ public:
         std::lock_guard<std::mutex> lock(mtx);
         auto *dataL = buffer.getReadPointer(0);
         auto *dataR = buffer.getReadPointer(1);
-        for (auto *consumer : consumers) {
+        for (auto &entry : entries) {
             for (auto i = 0; i < buffer.getNumSamples(); ++i) {
-                if (MAX_REC_SAMPLES <= consumer->cursor) {
-                    consumer->recording = false;
-                    consumer->cursor = 0;
+                if (MAX_REC_SAMPLES <= entry.cursor) {
+                    entry.recording = false;
+                    entry.cursor = 0;
                 }
-                if (!consumer->recording) {
+                if (!entry.recording) {
                     break;
                 }
-                if (consumer->cursor == 0 && dataL[i] == 0 && dataR[i] == 0) {
+                if (entry.cursor == 0 && dataL[i] == 0 && dataR[i] == 0) {
                     continue;
                 }
-                consumer->dataL[consumer->cursor] = dataL[i];
-                consumer->dataR[consumer->cursor] = dataR[i];
-                consumer->cursor++;
+                entry.dataL[entry.cursor] = dataL[i];
+                entry.dataR[entry.cursor] = dataR[i];
+                entry.cursor++;
             }
         }
     }

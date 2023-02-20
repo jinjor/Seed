@@ -437,8 +437,6 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder)
       envelopeLine{colour::ENVELOPE_LINE},
       spectrumLine{colour::SPECTRUM_LINE},
       recordingButton{"Record"} {
-    recorder.addConsumer(&fftConsumer);
-
     {
         auto image = juce::Image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, FREQ_SCOPE_SIZE, true};
         heatMap.setImage(image);
@@ -467,7 +465,7 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder)
 
     startTimerHz(30.0f);
 }
-AnalyserWindow2::~AnalyserWindow2() { recorder.removeConsumer(&fftConsumer); }
+AnalyserWindow2::~AnalyserWindow2() {}
 
 void AnalyserWindow2::resized() {
     juce::Rectangle<int> bounds = getLocalBounds();
@@ -484,7 +482,7 @@ void AnalyserWindow2::timerCallback() {
     stopTimer();
     bool shouldRepaint = false;
 
-    if (!calculated && !fftConsumer.recording) {
+    if (!calculated && !recorder.entries[currentEntryIndex].recording) {
         for (int t = 0; t < TIME_SCOPE_SIZE; ++t) {
             calculateSpectrum(t);
         }
@@ -503,13 +501,13 @@ void AnalyserWindow2::timerCallback() {
                            1);
     spectrumLine.setBounds(
         heatMapBounds.getWidth() * (float)focusedTimeIndex / TIME_SCOPE_SIZE, (float)0, 1, heatMapBounds.getHeight());
-    recordingButton.setEnabled(!fftConsumer.recording);
+    recordingButton.setEnabled(!recorder.entries[currentEntryIndex].recording);
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
     if (button == &recordingButton) {
         calculated = false;
-        fftConsumer.recording = true;
-        fftConsumer.cursor = 0;
+        recorder.entries[currentEntryIndex].recording = true;
+        recorder.entries[currentEntryIndex].cursor = 0;
         recordingButton.setToggleState(false, juce::dontSendNotification);
         recordingButton.setEnabled(false);
     }
@@ -528,13 +526,14 @@ void AnalyserWindow2::mouseDown(const MouseEvent& event) {
     repaint();
 }
 void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
+    auto& entry = recorder.entries[currentEntryIndex];
     int sampleIndex = ((float)timeScopeIndex / (float)TIME_SCOPE_SIZE) * MAX_REC_SAMPLES;
     jassert(sampleIndex >= 0);
     jassert(sampleIndex < MAX_REC_SAMPLES);
     auto& fftData = allFftData[timeScopeIndex];
     for (int i = 0; i < FFT_SIZE; i++) {
         auto dataIndex = sampleIndex - FFT_SIZE + i;
-        fftData[i] = dataIndex >= 0 ? (fftConsumer.dataL[dataIndex] + fftConsumer.dataR[dataIndex]) * 0.5f : 0;
+        fftData[i] = dataIndex >= 0 ? (entry.dataL[dataIndex] + entry.dataR[dataIndex]) * 0.5f : 0;
         fftData[i + FFT_SIZE] = 0;
     }
     window.multiplyWithWindowingTable(fftData, FFT_SIZE);

@@ -536,12 +536,12 @@ private:
     Recorder& recorder;
     juce::dsp::FFT forwardFFT;
     juce::dsp::WindowingFunction<float> window;
-    Recorder::Consumer fftConsumer{};
     float allFftData[TIME_SCOPE_SIZE][FFT_SIZE * 2]{};
     float allScopeData[TIME_SCOPE_SIZE][FREQ_SCOPE_SIZE]{};
     bool calculated = false;
     int focusedTimeIndex = TIME_SCOPE_SIZE / 2;
     int focusedFreqIndex = FREQ_SCOPE_SIZE / 2;
+    int currentEntryIndex = 0;
 
     juce::ToggleButton recordingButton;
     juce::ImageComponent heatMap;
