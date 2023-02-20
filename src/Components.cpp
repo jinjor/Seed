@@ -436,7 +436,16 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder)
       window(FFT_SIZE, juce::dsp::WindowingFunction<float>::hann),
       envelopeLine{colour::ENVELOPE_LINE},
       spectrumLine{colour::SPECTRUM_LINE},
+      entryButtons{juce::ToggleButton{"1"}, juce::ToggleButton{"2"}, juce::ToggleButton{"3"}, juce::ToggleButton{"4"}},
       recordingButton{"Record"} {
+    for (auto& entryButton : entryButtons) {
+        entryButton.setLookAndFeel(&seedLookAndFeel);
+        entryButton.addListener(this);
+        addAndMakeVisible(entryButton);
+    }
+    recordingButton.setLookAndFeel(&seedLookAndFeel);
+    recordingButton.addListener(this);
+    addAndMakeVisible(recordingButton);
     {
         auto image = juce::Image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, FREQ_SCOPE_SIZE, true};
         heatMap.setImage(image);
@@ -459,10 +468,6 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder)
         addAndMakeVisible(spectrumView);
     }
 
-    recordingButton.setLookAndFeel(&seedLookAndFeel);
-    recordingButton.addListener(this);
-    addAndMakeVisible(recordingButton);
-
     startTimerHz(30.0f);
 }
 AnalyserWindow2::~AnalyserWindow2() {}
@@ -470,13 +475,20 @@ AnalyserWindow2::~AnalyserWindow2() {}
 void AnalyserWindow2::resized() {
     juce::Rectangle<int> bounds = getLocalBounds();
 
+    auto toolsArea = bounds.removeFromTop(30);
+    for (auto& entryButton : entryButtons) {
+        entryButton.setBounds(toolsArea.removeFromLeft(70));
+    }
+    toolsArea.removeFromLeft(20);
+    recordingButton.setBounds(toolsArea.removeFromLeft(100));
+
+    bounds.removeFromTop(30);
+
     float width = bounds.getWidth();
     float height = bounds.getHeight();
-
-    heatMap.setBounds(getLocalBounds().removeFromTop(height * 0.8).removeFromLeft(width * 0.8));
-    envelopeView.setBounds(getLocalBounds().removeFromBottom(height * 0.2).removeFromLeft(width * 0.8));
-    spectrumView.setBounds(getLocalBounds().removeFromTop(height * 0.8).removeFromRight(width * 0.2));
-    recordingButton.setBounds(getLocalBounds().removeFromTop(30).removeFromLeft(100));
+    heatMap.setBounds(bounds.withTrimmedRight(width * 0.2).withTrimmedBottom(height * 0.2));
+    envelopeView.setBounds(bounds.withTrimmedRight(width * 0.2).withTrimmedTop(height * 0.8 + 2.0));
+    spectrumView.setBounds(bounds.withTrimmedLeft(width * 0.8 + 2.0).withTrimmedBottom(height * 0.2));
 }
 void AnalyserWindow2::timerCallback() {
     stopTimer();
@@ -495,15 +507,27 @@ void AnalyserWindow2::timerCallback() {
     startTimerHz(30.0f);
 
     auto heatMapBounds = heatMap.getBounds();
-    envelopeLine.setBounds((float)0,
-                           heatMapBounds.getHeight() * (1.0f - (float)focusedFreqIndex / FREQ_SCOPE_SIZE),
-                           heatMapBounds.getWidth(),
-                           1);
-    spectrumLine.setBounds(
-        heatMapBounds.getWidth() * (float)focusedTimeIndex / TIME_SCOPE_SIZE, (float)0, 1, heatMapBounds.getHeight());
+    envelopeLine.setBounds(
+        heatMapBounds.getX(),
+        heatMapBounds.getY() + heatMapBounds.getHeight() * (1.0f - (float)focusedFreqIndex / FREQ_SCOPE_SIZE),
+        heatMapBounds.getWidth(),
+        1);
+    spectrumLine.setBounds(heatMapBounds.getX() + heatMapBounds.getWidth() * (float)focusedTimeIndex / TIME_SCOPE_SIZE,
+                           heatMapBounds.getY(),
+                           1,
+                           heatMapBounds.getHeight());
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        entryButtons[i].setToggleState(i == currentEntryIndex, juce::dontSendNotification);
+    }
     recordingButton.setEnabled(!recorder.entries[currentEntryIndex].recording);
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
+    for (int i = 0; i < NUM_ENTRIES; i++) {
+        if (button == &entryButtons[i]) {
+            currentEntryIndex = i;
+            calculated = false;
+        }
+    }
     if (button == &recordingButton) {
         calculated = false;
         recorder.entries[currentEntryIndex].recording = true;
