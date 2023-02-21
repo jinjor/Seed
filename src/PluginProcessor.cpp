@@ -123,6 +123,7 @@ void SeedAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     juce::XmlElement xml("SeedAnalyser");
     for (int i = 0; i < NUM_ENTRIES; i++) {
         auto& entry = recorder.entries[i];
+        allParams.entryParams[i].saveParameters(xml);
         xml.setAttribute("E" + juce::String(i) + "_DATA_L", juce::Base64::toBase64(&entry.dataL, DATA_SIZE));
         xml.setAttribute("E" + juce::String(i) + "_DATA_R", juce::Base64::toBase64(&entry.dataR, DATA_SIZE));
     }
@@ -133,6 +134,7 @@ void SeedAudioProcessor::setStateInformation(const void* data, int sizeInBytes) 
     if (xml && xml->hasTagName("SeedAnalyser")) {
         for (int i = 0; i < NUM_ENTRIES; i++) {
             auto& entry = recorder.entries[i];
+            allParams.entryParams[i].loadParameters(*xml);
             MemoryOutputStream outL{entry.dataL, DATA_SIZE};
             MemoryOutputStream outR{entry.dataR, DATA_SIZE};
             juce::Base64::convertFromBase64(outL, xml->getStringAttribute("E" + juce::String(i) + "_DATA_L", ""));

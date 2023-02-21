@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "Params.h"
+
 //==============================================================================
 class TimeConsumptionState {
 public:
@@ -93,7 +95,6 @@ private:
 //==============================================================================
 
 namespace {
-constexpr int NUM_ENTRIES = 4;
 constexpr int MAX_REC_SAMPLES = 48000 * 4;
 constexpr int DATA_SIZE = sizeof(float) * MAX_REC_SAMPLES;
 }  // namespace
@@ -186,6 +187,7 @@ public:
     juce::MidiKeyboardState keyboardState;
     LatestDataProvider latestDataProvider;
     Recorder recorder;
+    AllParams allParams{};
 
 private:
     //==============================================================================
