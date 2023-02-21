@@ -557,6 +557,7 @@ private:
     virtual void timerCallback() override;
     virtual void buttonClicked(juce::Button* button) override;
     virtual void mouseDown(const MouseEvent& event) override;
+    virtual void mouseDoubleClick(const MouseEvent& event) override;
 
     void calculateSpectrum(int timeScopeIndex);
     void drawHeatMap();

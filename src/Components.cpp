@@ -451,8 +451,8 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
         auto image = juce::Image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, FREQ_SCOPE_SIZE, true};
         heatMap.setImage(image);
         heatMap.setImagePlacement(juce::RectanglePlacement::stretchToFit);
-        addAndMakeVisible(heatMap);
         heatMap.addMouseListener(this, false);
+        addAndMakeVisible(heatMap);
     }
     addAndMakeVisible(envelopeLine);
     addAndMakeVisible(spectrumLine);
@@ -466,6 +466,7 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
         auto image = juce::Image{juce::Image::PixelFormat::RGB, SPECTRUM_VIEW_WIDTH, FREQ_SCOPE_SIZE, true};
         spectrumView.setImage(image);
         spectrumView.setImagePlacement(juce::RectanglePlacement::stretchToFit);
+        spectrumView.addMouseListener(this, false);
         addAndMakeVisible(spectrumView);
     }
 
@@ -545,6 +546,18 @@ void AnalyserWindow2::mouseDown(const MouseEvent& event) {
         focusedTimeIndex = TIME_SCOPE_SIZE * xratio;
         focusedFreqIndex = FREQ_SCOPE_SIZE * (1.0f - yratio);
         drawEnvelopeView();
+        drawSpectrumView();
+        repaint();
+    }
+}
+void AnalyserWindow2::mouseDoubleClick(const MouseEvent& event) {
+    if (event.eventComponent == &spectrumView) {
+        auto bounds = heatMap.getBounds();
+        auto minFreq = 40.0f;
+        auto maxFreq = 20000.0f;
+        auto yratio = (float)event.y / bounds.getHeight();
+        auto freq = xToHz(minFreq, maxFreq, 1.0f - yratio);
+        *allParams.entryParams[currentEntryIndex].BaseFreq = freq;
         drawSpectrumView();
         repaint();
     }
