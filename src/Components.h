@@ -560,8 +560,13 @@ private:
     void drawHeatMap();
     void drawEnvelopeView();
     void drawSpectrumView();
-    static float xToHz(float minFreq, float maxFreq, float notmalizedX) {
-        return minFreq * std::pow(maxFreq / minFreq, notmalizedX);
+    static float xToHz(float minFreq, float maxFreq, float normalizedX) {
+        return minFreq * std::pow(maxFreq / minFreq, normalizedX);
+    }
+    static float xToHz2(float minFreq, float midFreq, float maxFreq, float normalizedX) {
+        auto A = (midFreq - maxFreq) / (midFreq - minFreq);
+        auto B = (maxFreq - minFreq) / (std::pow(A, 2) - 1);
+        return B * std::pow(-A, 2 * normalizedX) + minFreq - B;
     }
     static float getFFTDataByHz(float* processedFFTData, float fftSize, float sampleRate, float hz) {
         float indexFloat = hz * ((fftSize * 0.5) / (sampleRate * 0.5));
