@@ -103,6 +103,7 @@ public:
     class Entry {
     public:
         Entry(const Entry &) = delete;
+        float sampleRate = 48000;
         float dataL[MAX_REC_SAMPLES]{};
         float dataR[MAX_REC_SAMPLES]{};
         int cursor = 0;
@@ -112,7 +113,7 @@ public:
 
     Recorder(){};
     ~Recorder(){};
-    void push(juce::AudioBuffer<float> &buffer) {
+    void push(juce::AudioBuffer<float> &buffer, float sampleRate) {
         if (buffer.getNumChannels() <= 0) {
             return;
         }
@@ -120,6 +121,7 @@ public:
         auto *dataL = buffer.getReadPointer(0);
         auto *dataR = buffer.getReadPointer(1);
         for (auto &entry : entries) {
+            entry.sampleRate = sampleRate;
             for (auto i = 0; i < buffer.getNumSamples(); ++i) {
                 if (MAX_REC_SAMPLES <= entry.cursor) {
                     entry.recording = false;

@@ -576,8 +576,7 @@ void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
     window.multiplyWithWindowingTable(fftData, FFT_SIZE);
     forwardFFT.performFrequencyOnlyForwardTransform(fftData);
 
-    // auto sampleRate = 48000;  // TODO: ?
-    auto sampleRate = 44100;  // TODO: ?
+    auto sampleRate = entry.sampleRate;
     auto minFreq = 40.0f;
     auto maxFreq = 20000.0f;
     auto mindB = -100.0f;
