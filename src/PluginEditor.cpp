@@ -12,7 +12,7 @@ SeedAudioProcessorEditor::SeedAudioProcessorEditor(SeedAudioProcessor &p)
       analyserToggle(&analyserMode),
       analyserWindow(&analyserMode, &p.latestDataProvider),
       statusComponent(&p.latestDataProvider),
-      analyserWindow2(p.recorder) {
+      analyserWindow2(p.recorder, p.allParams) {
     getLookAndFeel().setColour(juce::Label::textColourId, colour::TEXT);
 
     addAndMakeVisible(analyserToggle);

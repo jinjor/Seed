@@ -430,8 +430,9 @@ void AnalyserWindow::paintLevel(juce::Graphics& g, int offsetX, int offsetY, int
 }
 
 //==============================================================================
-AnalyserWindow2::AnalyserWindow2(Recorder& recorder)
+AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
     : recorder(recorder),
+      allParams(allParams),
       forwardFFT(FFT_ORDER),
       window(FFT_SIZE, juce::dsp::WindowingFunction<float>::hann),
       envelopeLine{colour::ENVELOPE_LINE},
@@ -563,7 +564,8 @@ void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
     window.multiplyWithWindowingTable(fftData, FFT_SIZE);
     forwardFFT.performFrequencyOnlyForwardTransform(fftData);
 
-    auto sampleRate = 48000;  // TODO: ?
+    // auto sampleRate = 48000;  // TODO: ?
+    auto sampleRate = 44100;  // TODO: ?
     auto minFreq = 40.0f;
     auto maxFreq = 20000.0f;
     auto mindB = -100.0f;
@@ -598,8 +600,8 @@ void AnalyserWindow2::drawEnvelopeView() {
     g.setColour(colour::ENVELOPE_LINE);
     int y = focusedFreqIndex;
     for (int x = 1; x < TIME_SCOPE_SIZE; ++x) {
-        auto& prev = allScopeData[x - 1][y];
-        auto& curr = allScopeData[x][y];
+        auto prev = allScopeData[x - 1][y];
+        auto curr = allScopeData[x][y];
         g.drawLine({(float)x - 1, (1 - prev) * ENVELOPE_VIEW_HEIGHT, (float)x, (1 - curr) * ENVELOPE_VIEW_HEIGHT});
     }
 }
@@ -608,11 +610,24 @@ void AnalyserWindow2::drawSpectrumView() {
     Graphics g(image);
     g.setColour(juce::Colours::black);
     g.fillRect(image.getBounds());
+
+    auto minFreq = 40.0f;
+    auto maxFreq = 20000.0f;
+    for (int i = 0; i < 16; i++) {
+        float freq = allParams.entryParams[currentEntryIndex].BaseFreq->get() * (i + 1);
+        if (freq > maxFreq) {
+            break;
+        }
+        float y = hzToX(minFreq, maxFreq, freq) * FREQ_SCOPE_SIZE;
+        g.setColour(colour::GUIDE_LINE.brighter(i % 4 == 0 ? 0.7 : 0));
+        g.drawLine({0, ((float)FREQ_SCOPE_SIZE - 1) - y, SPECTRUM_VIEW_WIDTH - 1, ((float)FREQ_SCOPE_SIZE - 1) - y});
+    }
+
     g.setColour(colour::SPECTRUM_LINE);
     int x = focusedTimeIndex;
     for (int y = 1; y < FREQ_SCOPE_SIZE; ++y) {
-        auto& prev = allScopeData[x][y - 1];
-        auto& curr = allScopeData[x][y];
+        auto prev = allScopeData[x][y - 1];
+        auto curr = allScopeData[x][y];
         g.drawLine({prev * SPECTRUM_VIEW_WIDTH,
                     ((float)FREQ_SCOPE_SIZE - 1) - ((float)y - 1),
                     curr * SPECTRUM_VIEW_WIDTH,

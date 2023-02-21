@@ -523,7 +523,7 @@ constexpr int FFT_SIZE = 4096;
 }  // namespace
 class AnalyserWindow2 : public juce::Component, juce::Button::Listener, private juce::Timer {
 public:
-    AnalyserWindow2(Recorder& recorder);
+    AnalyserWindow2(Recorder& recorder, AllParams& allParams);
     virtual ~AnalyserWindow2();
     AnalyserWindow2(const AnalyserWindow2&) = delete;
 
@@ -534,6 +534,8 @@ private:
     SeedLookAndFeel seedLookAndFeel;
 
     Recorder& recorder;
+    AllParams& allParams;
+
     juce::dsp::FFT forwardFFT;
     juce::dsp::WindowingFunction<float> window;
     float allFftData[TIME_SCOPE_SIZE][FFT_SIZE * 2]{};
@@ -563,10 +565,20 @@ private:
     static float xToHz(float minFreq, float maxFreq, float normalizedX) {
         return minFreq * std::pow(maxFreq / minFreq, normalizedX);
     }
+    static float hzToX(float minFreq, float maxFreq, float freq) {
+        return std::logf(freq / minFreq) / std::logf(maxFreq / minFreq);
+    }
     static float xToHz2(float minFreq, float midFreq, float maxFreq, float normalizedX) {
+        // TODO: constexpr
         auto A = (midFreq - maxFreq) / (midFreq - minFreq);
         auto B = (maxFreq - minFreq) / (std::pow(A, 2) - 1);
         return B * std::pow(-A, 2 * normalizedX) + minFreq - B;
+    }
+    static float hzToX2(float minFreq, float midFreq, float maxFreq, float freq) {
+        // TODO: constexpr
+        auto A = (midFreq - maxFreq) / (midFreq - minFreq);
+        auto B = (maxFreq - minFreq) / (std::pow(A, 2) - 1);
+        return (std::logf((freq + B - minFreq) / B) / std::logf(-A)) / 2;
     }
     static float getFFTDataByHz(float* processedFFTData, float fftSize, float sampleRate, float hz) {
         float indexFloat = hz * ((fftSize * 0.5) / (sampleRate * 0.5));

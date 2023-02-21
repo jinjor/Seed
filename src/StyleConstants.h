@@ -26,6 +26,7 @@ const juce::Colour ANALYSER_BORDER = juce::Colour(150, 150, 150);
 const juce::Colour ANALYSER_LINE = juce::Colour(20, 40, 70);
 const juce::Colour ENVELOPE_LINE = juce::Colour(255, 200, 200);
 const juce::Colour SPECTRUM_LINE = juce::Colour(200, 255, 200);
+const juce::Colour GUIDE_LINE = juce::Colour(80, 80, 80);
 const juce::Colour PIT = juce::Colour(180, 180, 180);
 }  // namespace colour
 // font
