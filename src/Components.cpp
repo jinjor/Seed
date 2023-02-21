@@ -538,17 +538,16 @@ void AnalyserWindow2::buttonClicked(juce::Button* button) {
     }
 }
 void AnalyserWindow2::mouseDown(const MouseEvent& event) {
-    auto bounds = heatMap.getBounds();
-    auto xratio = (float)event.x / bounds.getWidth();
-    auto yratio = (float)event.y / bounds.getHeight();
-    if (xratio < 0 || xratio >= 1 || yratio < 0 || yratio >= 1) {
-        return;
+    if (event.eventComponent == &heatMap) {
+        auto bounds = heatMap.getBounds();
+        auto xratio = (float)event.x / bounds.getWidth();
+        auto yratio = (float)event.y / bounds.getHeight();
+        focusedTimeIndex = TIME_SCOPE_SIZE * xratio;
+        focusedFreqIndex = FREQ_SCOPE_SIZE * (1.0f - yratio);
+        drawEnvelopeView();
+        drawSpectrumView();
+        repaint();
     }
-    focusedTimeIndex = TIME_SCOPE_SIZE * xratio;
-    focusedFreqIndex = FREQ_SCOPE_SIZE * (1.0f - yratio);
-    drawEnvelopeView();
-    drawSpectrumView();
-    repaint();
 }
 void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
     auto& entry = recorder.entries[currentEntryIndex];
