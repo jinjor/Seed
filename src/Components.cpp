@@ -438,15 +438,19 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
       envelopeLine{colour::ENVELOPE_LINE},
       spectrumLine{colour::SPECTRUM_LINE},
       entryButtons{juce::ToggleButton{"1"}, juce::ToggleButton{"2"}, juce::ToggleButton{"3"}, juce::ToggleButton{"4"}},
-      recordingButton{"Record"} {
+      recordButton{"Record"},
+      playButton{"Play"} {
     for (auto& entryButton : entryButtons) {
         entryButton.setLookAndFeel(&seedLookAndFeel);
         entryButton.addListener(this);
         addAndMakeVisible(entryButton);
     }
-    recordingButton.setLookAndFeel(&seedLookAndFeel);
-    recordingButton.addListener(this);
-    addAndMakeVisible(recordingButton);
+    recordButton.setLookAndFeel(&seedLookAndFeel);
+    recordButton.addListener(this);
+    addAndMakeVisible(recordButton);
+    playButton.setLookAndFeel(&seedLookAndFeel);
+    playButton.addListener(this);
+    addAndMakeVisible(playButton);
     {
         auto image = juce::Image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, FREQ_SCOPE_SIZE, true};
         heatMap.setImage(image);
@@ -482,7 +486,8 @@ void AnalyserWindow2::resized() {
         entryButton.setBounds(toolsArea.removeFromLeft(70));
     }
     toolsArea.removeFromLeft(20);
-    recordingButton.setBounds(toolsArea.removeFromLeft(100));
+    recordButton.setBounds(toolsArea.removeFromLeft(100));
+    playButton.setBounds(toolsArea.removeFromLeft(100));
 
     bounds.removeFromTop(30);
 
@@ -496,7 +501,7 @@ void AnalyserWindow2::timerCallback() {
     stopTimer();
     bool shouldRepaint = false;
 
-    if (!calculated && !recorder.entries[currentEntryIndex].recording) {
+    if (!calculated && recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING) {
         for (int t = 0; t < TIME_SCOPE_SIZE; ++t) {
             calculateSpectrum(t);
         }
@@ -521,7 +526,8 @@ void AnalyserWindow2::timerCallback() {
     for (int i = 0; i < NUM_ENTRIES; i++) {
         entryButtons[i].setToggleState(i == currentEntryIndex, juce::dontSendNotification);
     }
-    recordingButton.setEnabled(!recorder.entries[currentEntryIndex].recording);
+    recordButton.setEnabled(recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING);
+    playButton.setEnabled(recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING);
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
     for (int i = 0; i < NUM_ENTRIES; i++) {
@@ -530,12 +536,22 @@ void AnalyserWindow2::buttonClicked(juce::Button* button) {
             calculated = false;
         }
     }
-    if (button == &recordingButton) {
-        calculated = false;
-        recorder.entries[currentEntryIndex].recording = true;
-        recorder.entries[currentEntryIndex].cursor = 0;
-        recordingButton.setToggleState(false, juce::dontSendNotification);
-        recordingButton.setEnabled(false);
+    if (button == &recordButton) {
+        if (recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING) {
+            calculated = false;
+            recorder.entries[currentEntryIndex].mode = Recorder::Mode::RECORDING;
+            recorder.entries[currentEntryIndex].cursor = 0;
+            recordButton.setToggleState(false, juce::dontSendNotification);
+            recordButton.setEnabled(false);
+        }
+
+    } else if (button == &playButton) {
+        if (recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING) {
+            recorder.entries[currentEntryIndex].mode = Recorder::Mode::PLAYING;
+            recorder.entries[currentEntryIndex].cursor = 0;
+            recordButton.setToggleState(false, juce::dontSendNotification);
+            recordButton.setEnabled(false);
+        }
     }
 }
 void AnalyserWindow2::mouseDown(const MouseEvent& event) {

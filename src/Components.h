@@ -546,7 +546,8 @@ private:
     int currentEntryIndex = 0;
 
     std::array<juce::ToggleButton, NUM_ENTRIES> entryButtons;
-    juce::ToggleButton recordingButton;
+    juce::ToggleButton recordButton;
+    juce::ToggleButton playButton;
     juce::ImageComponent heatMap;
     JustRectangle envelopeLine;
     JustRectangle spectrumLine;

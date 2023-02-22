@@ -100,6 +100,7 @@ constexpr int DATA_SIZE = sizeof(float) * MAX_REC_SAMPLES;
 }  // namespace
 class Recorder {
 public:
+    enum class Mode { WAITING, RECORDING, PLAYING };
     class Entry {
     public:
         Entry(const Entry &) = delete;
@@ -107,7 +108,7 @@ public:
         float dataL[MAX_REC_SAMPLES]{};
         float dataR[MAX_REC_SAMPLES]{};
         int cursor = 0;
-        bool recording = false;
+        Mode mode = Mode::WAITING;
     };
     std::array<Entry, NUM_ENTRIES> entries{};
 
@@ -118,24 +119,44 @@ public:
             return;
         }
         std::lock_guard<std::mutex> lock(mtx);
-        auto *dataL = buffer.getReadPointer(0);
-        auto *dataR = buffer.getReadPointer(1);
+        auto *readL = buffer.getReadPointer(0);
+        auto *readR = buffer.getReadPointer(1);
+        auto *writeL = buffer.getWritePointer(0);
+        auto *writeR = buffer.getWritePointer(1);
         for (auto &entry : entries) {
-            entry.sampleRate = sampleRate;
-            for (auto i = 0; i < buffer.getNumSamples(); ++i) {
-                if (MAX_REC_SAMPLES <= entry.cursor) {
-                    entry.recording = false;
-                    entry.cursor = 0;
+            if (entry.mode == Mode::RECORDING) {
+                entry.sampleRate = sampleRate;
+                for (auto i = 0; i < buffer.getNumSamples(); ++i) {
+                    if (MAX_REC_SAMPLES <= entry.cursor) {
+                        entry.mode = Mode::WAITING;
+                        entry.cursor = 0;
+                    }
+                    if (entry.mode == Mode::WAITING) {
+                        break;
+                    }
+                    if (entry.cursor == 0 && readL[i] == 0 && readR[i] == 0) {
+                        continue;
+                    }
+                    entry.dataL[entry.cursor] = readL[i];
+                    entry.dataR[entry.cursor] = readR[i];
+                    entry.cursor++;
                 }
-                if (!entry.recording) {
-                    break;
+            } else if (entry.mode == Mode::PLAYING) {
+                // if (entry.sampleRate != sampleRate) {
+                //     continue;
+                // }
+                for (auto i = 0; i < buffer.getNumSamples(); ++i) {
+                    if (MAX_REC_SAMPLES <= entry.cursor) {
+                        entry.mode = Mode::WAITING;
+                        entry.cursor = 0;
+                    }
+                    if (entry.mode == Mode::WAITING) {
+                        break;
+                    }
+                    writeL[i] += entry.dataL[entry.cursor];
+                    writeR[i] += entry.dataR[entry.cursor];
+                    entry.cursor++;
                 }
-                if (entry.cursor == 0 && dataL[i] == 0 && dataR[i] == 0) {
-                    continue;
-                }
-                entry.dataL[entry.cursor] = dataL[i];
-                entry.dataR[entry.cursor] = dataR[i];
-                entry.cursor++;
             }
         }
     }
