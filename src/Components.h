@@ -521,7 +521,7 @@ constexpr int SPECTRUM_VIEW_WIDTH = 200;
 constexpr int FFT_ORDER = 12;
 constexpr int FFT_SIZE = 4096;
 }  // namespace
-class AnalyserWindow2 : public juce::Component, juce::Button::Listener, private juce::Timer {
+class AnalyserWindow2 : public juce::Component, juce::Button::Listener, private juce::Timer, juce::KeyListener {
 public:
     AnalyserWindow2(Recorder& recorder, AllParams& allParams);
     virtual ~AnalyserWindow2();
@@ -588,4 +588,6 @@ private:
         float frac = indexFloat - index;
         return processedFFTData[index] * (1 - frac) + processedFFTData[index + 1] * frac;
     }
+    virtual bool keyPressed(const KeyPress& key, Component* originatingComponent) override;
+    virtual bool keyStateChanged(bool isKeyDown, Component* originatingComponent) override;
 };

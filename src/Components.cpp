@@ -473,6 +473,7 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
         spectrumView.addMouseListener(this, false);
         addAndMakeVisible(spectrumView);
     }
+    addKeyListener(this);
 
     startTimerHz(30.0f);
 }
@@ -662,3 +663,36 @@ void AnalyserWindow2::drawSpectrumView() {
     }
 }
 void AnalyserWindow2::paint(juce::Graphics& g) {}
+bool AnalyserWindow2::keyPressed(const KeyPress& key, Component* originatingComponent) {
+    if (key.getKeyCode() == juce::KeyPress::upKey) {
+        if (focusedFreqIndex < FREQ_SCOPE_SIZE - 1) {
+            focusedFreqIndex++;
+            drawEnvelopeView();
+            repaint();
+        }
+        return true;
+    } else if (key.getKeyCode() == juce::KeyPress::downKey) {
+        if (focusedFreqIndex > 0) {
+            focusedFreqIndex--;
+            drawEnvelopeView();
+            repaint();
+        }
+        return true;
+    } else if (key.getKeyCode() == juce::KeyPress::leftKey) {
+        if (focusedTimeIndex > 1) {
+            focusedTimeIndex -= 2;
+            drawSpectrumView();
+            repaint();
+        }
+        return true;
+    } else if (key.getKeyCode() == juce::KeyPress::rightKey) {
+        if (focusedTimeIndex < TIME_SCOPE_SIZE - 2) {
+            focusedTimeIndex += 2;
+            drawSpectrumView();
+            repaint();
+        }
+        return true;
+    }
+    return false;
+}
+bool AnalyserWindow2::keyStateChanged(bool isKeyDown, Component* originatingComponent) { return false; }
