@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "StyleConstants.h"
+#include "juce_core/system/juce_PlatformDefs.h"
 
 //==============================================================================
 float calcCurrentLevel(int numSamples, float* data) {
@@ -85,6 +86,39 @@ void JustRectangle::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds();
     g.setColour(colour);
     g.fillAll();
+}
+
+//==============================================================================
+
+SliderGrip::SliderGrip(Colour colour, bool horizontal) : colour(colour), horizontal(horizontal) {
+    setMouseCursor(horizontal ? juce::MouseCursor::LeftRightResizeCursor : juce::MouseCursor::UpDownResizeCursor);
+}
+SliderGrip::~SliderGrip() {}
+void SliderGrip::paint(juce::Graphics& g) {
+    auto bounds = getLocalBounds();
+    float width = bounds.getWidth();
+    float height = bounds.getHeight();
+
+    Path path;
+    if (horizontal) {
+        float arrowSize = width / 2;
+        path.startNewSubPath(bounds.getX(), bounds.getY());
+        path.lineTo(bounds.getRight(), bounds.getY());
+        path.lineTo(bounds.getRight(), bounds.getBottom() - arrowSize);
+        path.lineTo(bounds.getCentreX(), bounds.getBottom());
+        path.lineTo(bounds.getX(), bounds.getBottom() - arrowSize);
+        path.closeSubPath();
+    } else {
+        float arrowSize = width / 2;
+        path.startNewSubPath(bounds.getX(), bounds.getY());
+        path.lineTo(bounds.getRight() - arrowSize, bounds.getY());
+        path.lineTo(bounds.getRight(), bounds.getCentreY());
+        path.lineTo(bounds.getRight() - arrowSize, bounds.getBottom());
+        path.lineTo(bounds.getX(), bounds.getBottom());
+        path.closeSubPath();
+    }
+    g.setColour(colour);
+    g.fillPath(path);
 }
 
 //==============================================================================
@@ -439,7 +473,9 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
       spectrumLine{colour::SPECTRUM_LINE},
       entryButtons{juce::ToggleButton{"1"}, juce::ToggleButton{"2"}, juce::ToggleButton{"3"}, juce::ToggleButton{"4"}},
       recordButton{"Record"},
-      playButton{"Play"} {
+      playButton{"Play"},
+      highFreqGrip{Colours::brown, false},
+      lowFreqGrip(Colours::blueviolet, false) {
     for (auto& entryButton : entryButtons) {
         entryButton.setLookAndFeel(&seedLookAndFeel);
         entryButton.addListener(this);
@@ -473,6 +509,11 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
         spectrumView.addMouseListener(this, false);
         addAndMakeVisible(spectrumView);
     }
+    highFreqGrip.addMouseListener(this, false);
+    addAndMakeVisible(highFreqGrip);
+    lowFreqGrip.addMouseListener(this, false);
+    addAndMakeVisible(lowFreqGrip);
+
     addKeyListener(this);
 
     startTimerHz(30.0f);
@@ -481,8 +522,9 @@ AnalyserWindow2::~AnalyserWindow2() {}
 
 void AnalyserWindow2::resized() {
     juce::Rectangle<int> bounds = getLocalBounds();
+    auto inner = bounds.reduced(30, 0);
 
-    auto toolsArea = bounds.removeFromTop(30);
+    auto toolsArea = inner.removeFromTop(30);
     for (auto& entryButton : entryButtons) {
         entryButton.setBounds(toolsArea.removeFromLeft(70));
     }
@@ -490,13 +532,27 @@ void AnalyserWindow2::resized() {
     recordButton.setBounds(toolsArea.removeFromLeft(100));
     playButton.setBounds(toolsArea.removeFromLeft(100));
 
-    bounds.removeFromTop(30);
+    inner.removeFromTop(30);
 
-    float width = bounds.getWidth();
-    float height = bounds.getHeight();
-    heatMap.setBounds(bounds.withTrimmedRight(width * 0.2).withTrimmedBottom(height * 0.2));
-    envelopeView.setBounds(bounds.withTrimmedRight(width * 0.2).withTrimmedTop(height * 0.8 + 2.0));
-    spectrumView.setBounds(bounds.withTrimmedLeft(width * 0.8 + 2.0).withTrimmedBottom(height * 0.2));
+    float width = inner.getWidth();
+    float height = inner.getHeight();
+    heatMap.setBounds(inner.withTrimmedRight(width * 0.2).withTrimmedBottom(height * 0.2));
+    envelopeView.setBounds(inner.withTrimmedRight(width * 0.2).withTrimmedTop(height * 0.8 + 2.0));
+    spectrumView.setBounds(inner.withTrimmedLeft(width * 0.8 + 2.0).withTrimmedBottom(height * 0.2));
+
+    int currentEntryIndex = recorder.getCurrentEntryIndex();
+    {
+        float freq = allParams.entryParams[currentEntryIndex].FilterHighFreq->get();
+        float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
+        float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
+        highFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+    }
+    {
+        float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
+        float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
+        float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
+        lowFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+    }
 }
 void AnalyserWindow2::timerCallback() {
     stopTimer();
@@ -532,6 +588,21 @@ void AnalyserWindow2::timerCallback() {
     }
     recordButton.setEnabled(canOperate);
     playButton.setEnabled(canOperate);
+
+    // TODO: 共通化
+    juce::Rectangle<int> bounds = getLocalBounds();
+    {
+        float freq = allParams.entryParams[currentEntryIndex].FilterHighFreq->get();
+        float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
+        float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
+        highFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+    }
+    {
+        float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
+        float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
+        float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
+        lowFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+    }
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
     for (int i = 0; i < NUM_ENTRIES; i++) {
@@ -552,7 +623,8 @@ void AnalyserWindow2::buttonClicked(juce::Button* button) {
             int entryIndex = recorder.getCurrentEntryIndex();
             auto& entryParams = allParams.entryParams[entryIndex];
             recorder.play(true,
-                          allParams.FilterN->get(),
+                          //   allParams.FilterN->get(),
+                          400,
                           entryParams.FilterLowFreq->get(),
                           entryParams.FilterHighFreq->get());  // TODO
             recordButton.setToggleState(false, juce::dontSendNotification);
@@ -570,6 +642,31 @@ void AnalyserWindow2::mouseDown(const MouseEvent& event) {
         drawEnvelopeView();
         drawSpectrumView();
         repaint();
+    }
+}
+void AnalyserWindow2::mouseDrag(const MouseEvent& event) {
+    if (event.eventComponent == &highFreqGrip) {
+        auto bounds = heatMap.getBounds();
+        float y = getMouseXYRelative().y;
+        float top = bounds.getY();
+        float height = bounds.getHeight();
+        auto yratio = 1.0f - (y - top) / height;
+        if (yratio < 0 || yratio > 1) {
+            return;
+        }
+        auto freq = xToHz(VIEW_MIN_FREQ, VIEW_MAX_FREQ, yratio);
+        *allParams.entryParams[recorder.getCurrentEntryIndex()].FilterHighFreq = freq;
+    } else if (event.eventComponent == &lowFreqGrip) {
+        auto bounds = heatMap.getBounds();
+        float y = getMouseXYRelative().y;
+        float top = bounds.getY();
+        float height = bounds.getHeight();
+        auto yratio = 1.0f - (y - top) / height;
+        if (yratio < 0 || yratio > 1) {
+            return;
+        }
+        auto freq = xToHz(VIEW_MIN_FREQ, VIEW_MAX_FREQ, yratio);
+        *allParams.entryParams[recorder.getCurrentEntryIndex()].FilterLowFreq = freq;
     }
 }
 void AnalyserWindow2::mouseDoubleClick(const MouseEvent& event) {
@@ -601,13 +698,11 @@ void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
     forwardFFT.performFrequencyOnlyForwardTransform(fftData);
 
     auto sampleRate = entry.sampleRate;
-    auto minFreq = 40.0f;
-    auto maxFreq = 20000.0f;
     auto mindB = -100.0f;
     auto maxdB = 0.0f;
     auto& scopeData = allScopeData[timeScopeIndex];
     for (int i = 0; i < FREQ_SCOPE_SIZE; ++i) {
-        float hz = xToHz(minFreq, maxFreq, (float)i / FREQ_SCOPE_SIZE);
+        float hz = xToHz(VIEW_MIN_FREQ, VIEW_MAX_FREQ, (float)i / FREQ_SCOPE_SIZE);
         float gain = getFFTDataByHz(fftData, FFT_SIZE, sampleRate, hz);
         auto level = juce::jmap(juce::Decibels::gainToDecibels(gain) - juce::Decibels::gainToDecibels((float)FFT_SIZE),
                                 mindB,
@@ -646,15 +741,13 @@ void AnalyserWindow2::drawSpectrumView() {
     g.setColour(juce::Colours::black);
     g.fillRect(image.getBounds());
 
-    auto minFreq = 40.0f;
-    auto maxFreq = 20000.0f;
     int currentEntryIndex = recorder.getCurrentEntryIndex();
     for (int i = 0; i < 16; i++) {
         float freq = allParams.entryParams[currentEntryIndex].BaseFreq->get() * (i + 1);
-        if (freq > maxFreq) {
+        if (freq > VIEW_MAX_FREQ) {
             break;
         }
-        float y = hzToX(minFreq, maxFreq, freq) * FREQ_SCOPE_SIZE;
+        float y = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         g.setColour(colour::GUIDE_LINE.brighter(i % 4 == 0 ? 0.7 : 0));
         g.drawLine({0, ((float)FREQ_SCOPE_SIZE - 1) - y, SPECTRUM_VIEW_WIDTH - 1, ((float)FREQ_SCOPE_SIZE - 1) - y});
     }

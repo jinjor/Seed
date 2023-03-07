@@ -25,6 +25,20 @@ private:
 
 //==============================================================================
 
+class SliderGrip : public Component {
+public:
+    SliderGrip(Colour colour, bool horizontal);
+    ~SliderGrip() override;
+
+private:
+    Colour colour;
+    bool horizontal;
+    virtual void paint(juce::Graphics& g) override;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SliderGrip)
+};
+
+//==============================================================================
+
 class ArrowButton2 : public Button {
 public:
     ArrowButton2(const String& buttonName, float arrowDirection, Colour arrowColour);
@@ -520,6 +534,9 @@ constexpr int ENVELOPE_VIEW_HEIGHT = 200;
 constexpr int SPECTRUM_VIEW_WIDTH = 200;
 constexpr int FFT_ORDER = 12;
 constexpr int FFT_SIZE = 4096;
+
+constexpr float VIEW_MIN_FREQ = 20.0f;
+constexpr float VIEW_MAX_FREQ = 20000.0f;
 }  // namespace
 class AnalyserWindow2 : public juce::Component, juce::Button::Listener, private juce::Timer, juce::KeyListener {
 public:
@@ -552,11 +569,14 @@ private:
     JustRectangle spectrumLine;
     juce::ImageComponent envelopeView;
     juce::ImageComponent spectrumView;
+    SliderGrip highFreqGrip;
+    SliderGrip lowFreqGrip;
 
     // methods
     virtual void timerCallback() override;
     virtual void buttonClicked(juce::Button* button) override;
     virtual void mouseDown(const MouseEvent& event) override;
+    virtual void mouseDrag(const MouseEvent& event) override;
     virtual void mouseDoubleClick(const MouseEvent& event) override;
 
     void calculateSpectrum(int timeScopeIndex);
