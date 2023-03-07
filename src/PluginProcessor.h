@@ -125,10 +125,21 @@ public:
         std::lock_guard<std::mutex> lock(mtx);
         currentEntryIndex = index;
     }
-    void play() {
+    void play(bool filterEnabled, int n, float lowFreq, float highFreq) {
         std::lock_guard<std::mutex> lock(mtx);
         if (mode != Mode::WAITING) {
             return;
+        }
+        bool turnedOn = !this->filterEnabled && filterEnabled;
+        bool changed = filterN != n || filterLowFreq != lowFreq || filterHighFreq != highFreq;
+        this->filterEnabled = filterEnabled;
+        filterN = n;
+        filterLowFreq = lowFreq;
+        filterHighFreq = highFreq;
+        if (turnedOn || changed) {
+            DBG("begin calculateFilter");
+            calculateFilter();
+            DBG("end calculateFilter");
         }
         mode = Mode::PLAYING;
         cursor = 0;
@@ -178,6 +189,8 @@ public:
             // if (entry.sampleRate != sampleRate) {
             //     continue;
             // }
+            auto &targetL = filterEnabled ? filteredL : entry.dataL;
+            auto &targetR = filterEnabled ? filteredR : entry.dataR;
             for (auto i = 0; i < buffer.getNumSamples(); ++i) {
                 if (MAX_REC_SAMPLES <= cursor) {
                     mode = Mode::WAITING;
@@ -186,8 +199,8 @@ public:
                 if (mode == Mode::WAITING) {
                     break;
                 }
-                writeL[i] += entry.dataL[cursor];
-                writeR[i] += entry.dataR[cursor];
+                writeL[i] += targetL[cursor];
+                writeR[i] += targetR[cursor];
                 cursor++;
             }
         }
@@ -199,8 +212,48 @@ private:
     int currentEntryIndex = 0;
     int cursor = 0;
     Mode mode = Mode::WAITING;
-    // float filteredL[MAX_REC_SAMPLES]{};
-    // float filteredR[MAX_REC_SAMPLES]{};
+
+    bool filterEnabled = false;
+    int filterN = 100;
+    float filterLowFreq = 20;
+    float filterHighFreq = 20000;
+    float filteredL[MAX_REC_SAMPLES]{};
+    float filteredR[MAX_REC_SAMPLES]{};
+
+    void calculateFilter() {
+        auto &entry = entries[currentEntryIndex];
+        auto h = std::vector<double>(filterN + 1, 0.0);
+        {
+            double fc = filterHighFreq / entry.sampleRate;
+            double wc = fc * juce::MathConstants<double>::twoPi;
+            for (int n = 0; n <= filterN; n++) {
+                double n1 = n - (double)filterN / 2;
+                double sinc = n1 == 0 ? 1 : std::sin(wc * n1) / (wc * n1);
+                h[n] += 2.0 * fc * sinc;
+            }
+        }
+        {
+            double fc = filterLowFreq / entry.sampleRate;
+            double wc = fc * juce::MathConstants<double>::twoPi;
+            for (int n = 0; n <= filterN; n++) {
+                double n1 = n - (double)filterN / 2;
+                double sinc = n1 == 0 ? 1 : std::sin(wc * n1) / (wc * n1);
+                h[n] -= 2.0 * fc * sinc;
+            }
+        }
+        for (int i = 0; i < MAX_REC_SAMPLES; i++) {
+            double sumL = 0;
+            double sumR = 0;
+            for (int n = 0; n <= filterN; n++) {
+                double xl = i - n < 0 ? 0 : entry.dataL[i - n];
+                sumL += h[n] * xl;
+                double xr = i - n < 0 ? 0 : entry.dataR[i - n];
+                sumR += h[n] * xr;
+            }
+            filteredL[i] = sumL;
+            filteredR[i] = sumR;
+        }
+    }
 };
 
 //==============================================================================

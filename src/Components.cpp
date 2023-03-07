@@ -549,7 +549,12 @@ void AnalyserWindow2::buttonClicked(juce::Button* button) {
         }
     } else if (button == &playButton) {
         if (recorder.canOperate()) {
-            recorder.play();
+            int entryIndex = recorder.getCurrentEntryIndex();
+            auto& entryParams = allParams.entryParams[entryIndex];
+            recorder.play(true,
+                          allParams.FilterN->get(),
+                          entryParams.FilterLowFreq->get(),
+                          entryParams.FilterHighFreq->get());  // TODO
             recordButton.setToggleState(false, juce::dontSendNotification);
             recordButton.setEnabled(false);
         }
