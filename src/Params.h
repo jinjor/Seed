@@ -19,6 +19,8 @@ public:
 class EntryParams : public ParametersBase {
 public:
     juce::AudioParameterFloat* BaseFreq;
+    juce::AudioParameterFloat* FilterLowFreq;
+    juce::AudioParameterFloat* FilterHighFreq;
 
     EntryParams(int index);
     EntryParams(const EntryParams&) = delete;
@@ -32,6 +34,7 @@ public:
 //==============================================================================
 class AllParams : public ParametersBase {
 public:
+    juce::AudioParameterInt* FilterN;
     std::array<EntryParams, NUM_ENTRIES> entryParams;
 
     AllParams();
