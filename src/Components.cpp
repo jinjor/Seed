@@ -79,7 +79,7 @@ void SectionComponent::buttonClicked(juce::Button* button) {
 
 //==============================================================================
 
-JustRectangle::JustRectangle(Colour colour) : colour(colour) {}
+JustRectangle::JustRectangle(Colour colour) : colour(colour) { setInterceptsMouseClicks(false, false); }
 JustRectangle::~JustRectangle() {}
 void JustRectangle::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds();
