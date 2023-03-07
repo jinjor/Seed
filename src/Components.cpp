@@ -501,8 +501,10 @@ void AnalyserWindow2::resized() {
 void AnalyserWindow2::timerCallback() {
     stopTimer();
     bool shouldRepaint = false;
+    int currentEntryIndex = recorder.getCurrentEntryIndex();
+    bool canOperate = recorder.canOperate();
 
-    if (!calculated && recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING) {
+    if (!calculated && canOperate) {
         for (int t = 0; t < TIME_SCOPE_SIZE; ++t) {
             calculateSpectrum(t);
         }
@@ -526,30 +528,28 @@ void AnalyserWindow2::timerCallback() {
                            heatMapBounds.getHeight());
     for (int i = 0; i < NUM_ENTRIES; i++) {
         entryButtons[i].setToggleState(i == currentEntryIndex, juce::dontSendNotification);
+        entryButtons[i].setEnabled(canOperate);
     }
-    recordButton.setEnabled(recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING);
-    playButton.setEnabled(recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING);
+    recordButton.setEnabled(canOperate);
+    playButton.setEnabled(canOperate);
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
     for (int i = 0; i < NUM_ENTRIES; i++) {
         if (button == &entryButtons[i]) {
-            currentEntryIndex = i;
+            recorder.setCurrentEntryIndex(i);
             calculated = false;
         }
     }
     if (button == &recordButton) {
-        if (recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING) {
+        if (recorder.canOperate()) {
             calculated = false;
-            recorder.entries[currentEntryIndex].mode = Recorder::Mode::RECORDING;
-            recorder.entries[currentEntryIndex].cursor = 0;
+            recorder.record();
             recordButton.setToggleState(false, juce::dontSendNotification);
             recordButton.setEnabled(false);
         }
-
     } else if (button == &playButton) {
-        if (recorder.entries[currentEntryIndex].mode == Recorder::Mode::WAITING) {
-            recorder.entries[currentEntryIndex].mode = Recorder::Mode::PLAYING;
-            recorder.entries[currentEntryIndex].cursor = 0;
+        if (recorder.canOperate()) {
+            recorder.play();
             recordButton.setToggleState(false, juce::dontSendNotification);
             recordButton.setEnabled(false);
         }
@@ -574,12 +574,14 @@ void AnalyserWindow2::mouseDoubleClick(const MouseEvent& event) {
         auto maxFreq = 20000.0f;
         auto yratio = (float)event.y / bounds.getHeight();
         auto freq = xToHz(minFreq, maxFreq, 1.0f - yratio);
+        int currentEntryIndex = recorder.getCurrentEntryIndex();
         *allParams.entryParams[currentEntryIndex].BaseFreq = freq;
         drawSpectrumView();
         repaint();
     }
 }
 void AnalyserWindow2::calculateSpectrum(int timeScopeIndex) {
+    int currentEntryIndex = recorder.getCurrentEntryIndex();
     auto& entry = recorder.entries[currentEntryIndex];
     int sampleIndex = ((float)timeScopeIndex / (float)TIME_SCOPE_SIZE) * MAX_REC_SAMPLES;
     jassert(sampleIndex >= 0);
@@ -641,6 +643,7 @@ void AnalyserWindow2::drawSpectrumView() {
 
     auto minFreq = 40.0f;
     auto maxFreq = 20000.0f;
+    int currentEntryIndex = recorder.getCurrentEntryIndex();
     for (int i = 0; i < 16; i++) {
         float freq = allParams.entryParams[currentEntryIndex].BaseFreq->get() * (i + 1);
         if (freq > maxFreq) {

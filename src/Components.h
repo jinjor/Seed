@@ -543,7 +543,6 @@ private:
     bool calculated = false;
     int focusedTimeIndex = TIME_SCOPE_SIZE / 2;
     int focusedFreqIndex = FREQ_SCOPE_SIZE / 2;
-    int currentEntryIndex = 0;
 
     std::array<juce::ToggleButton, NUM_ENTRIES> entryButtons;
     juce::ToggleButton recordButton;
