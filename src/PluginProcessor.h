@@ -229,7 +229,12 @@ private:
             for (int n = 0; n <= filterN; n++) {
                 double n1 = n - (double)filterN / 2;
                 double sinc = n1 == 0 ? 1 : std::sin(wc * n1) / (wc * n1);
-                h[n] += 2.0 * fc * sinc;
+                double value = 2.0 * fc * sinc;
+                // blackman
+                // TODO: 一般化して切り出す
+                double window = 0.42 + 0.5 * std::cos(2 * juce::MathConstants<double>::pi * n1 / filterN) +
+                                0.08 * std::cos(4 * juce::MathConstants<double>::pi * n1 / filterN);
+                h[n] += value * window;
             }
         }
         {
@@ -238,7 +243,10 @@ private:
             for (int n = 0; n <= filterN; n++) {
                 double n1 = n - (double)filterN / 2;
                 double sinc = n1 == 0 ? 1 : std::sin(wc * n1) / (wc * n1);
-                h[n] -= 2.0 * fc * sinc;
+                double value = 2.0 * fc * sinc;
+                double window = 0.42 + 0.5 * std::cos(2 * juce::MathConstants<double>::pi * n1 / filterN) +
+                                0.08 * std::cos(4 * juce::MathConstants<double>::pi * n1 / filterN);
+                h[n] -= value * window;
             }
         }
         for (int i = 0; i < MAX_REC_SAMPLES; i++) {
