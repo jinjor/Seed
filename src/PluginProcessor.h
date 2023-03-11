@@ -124,6 +124,7 @@ public:
     void changeIndex(int index) {
         std::lock_guard<std::mutex> lock(mtx);
         currentEntryIndex = index;
+        filterEnabled = false;  // TODO: ロジックが微妙
     }
     void play(bool filterEnabled, int n, float lowFreq, float highFreq) {
         std::lock_guard<std::mutex> lock(mtx);
