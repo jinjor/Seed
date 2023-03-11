@@ -475,7 +475,9 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
       recordButton{"Record"},
       playButton{"Play"},
       highFreqGrip{Colours::brown, false},
-      lowFreqGrip(Colours::blueviolet, false) {
+      lowFreqGrip(Colours::blueviolet, false),
+      highFreqMask{Colour::fromRGBA(255, 255, 255, 127)},
+      lowFreqMask{Colour::fromRGBA(255, 255, 255, 127)} {
     for (auto& entryButton : entryButtons) {
         entryButton.setLookAndFeel(&seedLookAndFeel);
         entryButton.addListener(this);
@@ -513,6 +515,8 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
     addAndMakeVisible(highFreqGrip);
     lowFreqGrip.addMouseListener(this, false);
     addAndMakeVisible(lowFreqGrip);
+    addAndMakeVisible(highFreqMask);
+    addAndMakeVisible(lowFreqMask);
 
     addKeyListener(this);
 
@@ -546,12 +550,14 @@ void AnalyserWindow2::resized() {
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
         highFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        highFreqMask.setBounds(heatMap.getBounds().removeFromTop(viewY - heatMap.getY()));
     }
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
         lowFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        lowFreqMask.setBounds(heatMap.getBounds().removeFromBottom(heatMap.getBottom() - viewY));
     }
 }
 void AnalyserWindow2::timerCallback() {
@@ -596,12 +602,14 @@ void AnalyserWindow2::timerCallback() {
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
         highFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        highFreqMask.setBounds(heatMap.getBounds().removeFromTop(viewY - heatMap.getY()));
     }
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
         lowFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        lowFreqMask.setBounds(heatMap.getBounds().removeFromBottom(heatMap.getBottom() - viewY));
     }
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {

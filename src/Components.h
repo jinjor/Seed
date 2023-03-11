@@ -571,6 +571,8 @@ private:
     juce::ImageComponent spectrumView;
     SliderGrip highFreqGrip;
     SliderGrip lowFreqGrip;
+    JustRectangle highFreqMask;
+    JustRectangle lowFreqMask;
 
     // methods
     virtual void timerCallback() override;
