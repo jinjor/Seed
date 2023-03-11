@@ -474,6 +474,7 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
       entryButtons{juce::ToggleButton{"1"}, juce::ToggleButton{"2"}, juce::ToggleButton{"3"}, juce::ToggleButton{"4"}},
       recordButton{"Record"},
       playButton{"Play"},
+      stopButton{"Stop"},
       highFreqGrip{Colours::brown, false},
       lowFreqGrip(Colours::blueviolet, false),
       highFreqMask{Colour::fromRGBA(255, 255, 255, 127)},
@@ -489,6 +490,9 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
     playButton.setLookAndFeel(&seedLookAndFeel);
     playButton.addListener(this);
     addAndMakeVisible(playButton);
+    stopButton.setLookAndFeel(&seedLookAndFeel);
+    stopButton.addListener(this);
+    addAndMakeVisible(stopButton);
     {
         auto image = juce::Image{juce::Image::PixelFormat::RGB, TIME_SCOPE_SIZE, FREQ_SCOPE_SIZE, true};
         heatMap.setImage(image);
@@ -535,6 +539,7 @@ void AnalyserWindow2::resized() {
     toolsArea.removeFromLeft(20);
     recordButton.setBounds(toolsArea.removeFromLeft(100));
     playButton.setBounds(toolsArea.removeFromLeft(100));
+    stopButton.setBounds(toolsArea.removeFromLeft(100));
 
     inner.removeFromTop(30);
 
@@ -638,6 +643,9 @@ void AnalyserWindow2::buttonClicked(juce::Button* button) {
             recordButton.setToggleState(false, juce::dontSendNotification);
             recordButton.setEnabled(false);
         }
+    } else if (button == &stopButton) {
+        recorder.stop();
+        stopButton.setToggleState(false, juce::dontSendNotification);
     }
 }
 void AnalyserWindow2::mouseDown(const MouseEvent& event) {

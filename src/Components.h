@@ -564,6 +564,7 @@ private:
     std::array<juce::ToggleButton, NUM_ENTRIES> entryButtons;
     juce::ToggleButton recordButton;
     juce::ToggleButton playButton;
+    juce::ToggleButton stopButton;
     juce::ImageComponent heatMap;
     JustRectangle envelopeLine;
     JustRectangle spectrumLine;

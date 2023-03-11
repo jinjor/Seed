@@ -145,6 +145,10 @@ public:
         mode = Mode::PLAYING;
         cursor = 0;
     }
+    void stop() {
+        std::lock_guard<std::mutex> lock(mtx);
+        mode = Mode::WAITING;
+    }
     void record() {
         std::lock_guard<std::mutex> lock(mtx);
         if (mode != Mode::WAITING) {
