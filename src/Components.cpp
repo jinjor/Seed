@@ -109,7 +109,7 @@ void SliderGrip::paint(juce::Graphics& g) {
         path.lineTo(bounds.getX(), bounds.getBottom() - arrowSize);
         path.closeSubPath();
     } else {
-        float arrowSize = width / 2;
+        float arrowSize = height / 2;
         path.startNewSubPath(bounds.getX(), bounds.getY());
         path.lineTo(bounds.getRight() - arrowSize, bounds.getY());
         path.lineTo(bounds.getRight(), bounds.getCentreY());
@@ -478,7 +478,8 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
       highFreqGrip{Colours::brown, false},
       lowFreqGrip(Colours::blueviolet, false),
       highFreqMask{Colour::fromRGBA(255, 255, 255, 127)},
-      lowFreqMask{Colour::fromRGBA(255, 255, 255, 127)} {
+      lowFreqMask{Colour::fromRGBA(255, 255, 255, 127)},
+      playStartGrip{Colours::cornflowerblue, true} {
     for (auto& entryButton : entryButtons) {
         entryButton.setLookAndFeel(&seedLookAndFeel);
         entryButton.addListener(this);
@@ -521,6 +522,8 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
     addAndMakeVisible(lowFreqGrip);
     addAndMakeVisible(highFreqMask);
     addAndMakeVisible(lowFreqMask);
+    playStartGrip.addMouseListener(this, false);
+    addAndMakeVisible(playStartGrip);
 
     addKeyListener(this);
 
@@ -550,19 +553,28 @@ void AnalyserWindow2::resized() {
     spectrumView.setBounds(inner.withTrimmedLeft(width * 0.8 + 2.0).withTrimmedBottom(height * 0.2));
 
     int currentEntryIndex = recorder.getCurrentEntryIndex();
+    float gripWidth = 10.0f;
+    float gripLength = 22.0f;
+    float gripMargin = 4.0f;
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterHighFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
-        highFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        highFreqGrip.setBounds(
+            heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
         highFreqMask.setBounds(heatMap.getBounds().removeFromTop(viewY - heatMap.getY()));
     }
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
-        lowFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        lowFreqGrip.setBounds(heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
         lowFreqMask.setBounds(heatMap.getBounds().removeFromBottom(heatMap.getBottom() - viewY));
+    }
+    {
+        float playStartSec = allParams.entryParams[currentEntryIndex].PlayStartSec->get();
+        float x = heatMap.getX() + heatMap.getWidth() * (playStartSec / MAX_REC_SECONDS);
+        playStartGrip.setBounds(x - (gripWidth / 2), heatMap.getY() - gripMargin - gripLength, gripWidth, gripLength);
     }
 }
 void AnalyserWindow2::timerCallback() {
@@ -602,19 +614,28 @@ void AnalyserWindow2::timerCallback() {
 
     // TODO: 共通化
     juce::Rectangle<int> bounds = getLocalBounds();
+    float gripWidth = 10.0f;
+    float gripLength = 22.0f;
+    float gripMargin = 4.0f;
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterHighFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
-        highFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        highFreqGrip.setBounds(
+            heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
         highFreqMask.setBounds(heatMap.getBounds().removeFromTop(viewY - heatMap.getY()));
     }
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
-        lowFreqGrip.setBounds(bounds.getX(), viewY - 5.0f, 26.0f, 10.0f);
+        lowFreqGrip.setBounds(heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
         lowFreqMask.setBounds(heatMap.getBounds().removeFromBottom(heatMap.getBottom() - viewY));
+    }
+    {
+        float playStartSec = allParams.entryParams[currentEntryIndex].PlayStartSec->get();
+        float x = heatMap.getX() + heatMap.getWidth() * (playStartSec / MAX_REC_SECONDS);
+        playStartGrip.setBounds(x - (gripWidth / 2), heatMap.getY() - gripMargin - gripLength, gripWidth, gripLength);
     }
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
@@ -635,7 +656,8 @@ void AnalyserWindow2::buttonClicked(juce::Button* button) {
         if (recorder.canOperate()) {
             int entryIndex = recorder.getCurrentEntryIndex();
             auto& entryParams = allParams.entryParams[entryIndex];
-            recorder.play(true,
+            recorder.play(entryParams.PlayStartSec->get(),
+                          true,
                           //   allParams.FilterN->get(),
                           400,
                           entryParams.FilterLowFreq->get(),
@@ -683,6 +705,17 @@ void AnalyserWindow2::mouseDrag(const MouseEvent& event) {
         }
         auto freq = xToHz(VIEW_MIN_FREQ, VIEW_MAX_FREQ, yratio);
         *allParams.entryParams[recorder.getCurrentEntryIndex()].FilterLowFreq = freq;
+    } else if (event.eventComponent == &playStartGrip) {
+        auto bounds = heatMap.getBounds();
+        float x = getMouseXYRelative().x;
+        float left = bounds.getX();
+        float width = bounds.getWidth();
+        auto xratio = (x - left) / width;
+        if (xratio < 0 || xratio > 1) {
+            return;
+        }
+        auto sec = MAX_REC_SECONDS * xratio;
+        *allParams.entryParams[recorder.getCurrentEntryIndex()].PlayStartSec = sec;
     }
 }
 void AnalyserWindow2::mouseDoubleClick(const MouseEvent& event) {

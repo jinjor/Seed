@@ -127,7 +127,7 @@ public:
         currentEntryIndex = index;
         filterEnabled = false;  // TODO: ロジックが微妙
     }
-    void play(bool filterEnabled, int n, float lowFreq, float highFreq) {
+    void play(float fromSec, bool filterEnabled, int n, float lowFreq, float highFreq) {
         std::lock_guard<std::mutex> lock(mtx);
         if (mode != Mode::WAITING) {
             return;
@@ -144,7 +144,7 @@ public:
             DBG("end calculateFilter");
         }
         mode = Mode::PLAYING;
-        cursor = 0;
+        cursor = fromSec * entries[currentEntryIndex].sampleRate;
     }
     void stop() {
         std::lock_guard<std::mutex> lock(mtx);

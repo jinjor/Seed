@@ -9,21 +9,26 @@ EntryParams::EntryParams(int index) {
         idPrefix + "FILTER_LOW_FREQ", namePrefix + "Filter low Freq", 20.0f, 20000.0f, 20.0f);
     FilterHighFreq = new juce::AudioParameterFloat(
         idPrefix + "FILTER_HIGH_FREQ", namePrefix + "Filter High Freq", 20.0f, 20000.0f, 20000.0f);
+    PlayStartSec =
+        new juce::AudioParameterFloat(idPrefix + "PLAY_START_SEC", namePrefix + "Play Start Sec", 0.0f, 4.0f, 0.0f);
 }
 void EntryParams::addAllParameters(juce::AudioProcessor& processor) {
     processor.addParameter(BaseFreq);
     processor.addParameter(FilterLowFreq);
     processor.addParameter(FilterHighFreq);
+    processor.addParameter(PlayStartSec);
 }
 void EntryParams::saveParameters(juce::XmlElement& xml) {
     xml.setAttribute(BaseFreq->paramID, (double)BaseFreq->get());
     xml.setAttribute(FilterLowFreq->paramID, (double)FilterLowFreq->get());
     xml.setAttribute(FilterHighFreq->paramID, (double)FilterHighFreq->get());
+    xml.setAttribute(PlayStartSec->paramID, (double)PlayStartSec->get());
 }
 void EntryParams::loadParameters(juce::XmlElement& xml) {
     *BaseFreq = (float)xml.getDoubleAttribute(BaseFreq->paramID, 440.0);
     *FilterLowFreq = (float)xml.getDoubleAttribute(FilterLowFreq->paramID, 20.0);
     *FilterHighFreq = (float)xml.getDoubleAttribute(FilterHighFreq->paramID, 20000.0);
+    *PlayStartSec = (float)xml.getDoubleAttribute(PlayStartSec->paramID, 0.0);
 }
 
 //==============================================================================
