@@ -740,9 +740,21 @@ void AnalyserWindow2::drawHeatMap() {
 }
 void AnalyserWindow2::drawEnvelopeView() {
     auto& image = envelopeView.getImage();
+    auto bounds = image.getBounds();
+    float width = bounds.getWidth();
+    float bottom = bounds.getBottom();
     Graphics g(image);
     g.setColour(juce::Colours::black);
-    g.fillRect(image.getBounds());
+    g.fillRect(bounds);
+
+    g.setColour(colour::GUIDE_LINE);
+    int currentEntryIndex = recorder.getCurrentEntryIndex();
+    auto& entry = recorder.entries[currentEntryIndex];
+    for (int i = 1; i < MAX_REC_SECONDS; i++) {
+        float x = width * ((float)i / MAX_REC_SECONDS);
+        g.drawLine({x, 0, x, bottom});
+    }
+
     g.setColour(colour::ENVELOPE_LINE);
     int y = focusedFreqIndex;
     for (int x = 1; x < TIME_SCOPE_SIZE; ++x) {

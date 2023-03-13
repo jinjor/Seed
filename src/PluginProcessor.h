@@ -95,7 +95,8 @@ private:
 //==============================================================================
 
 namespace {
-constexpr int MAX_REC_SAMPLES = 48000 * 4;
+constexpr int MAX_REC_SECONDS = 4;
+constexpr int MAX_REC_SAMPLES = 48000 * MAX_REC_SECONDS;
 constexpr int DATA_SIZE = sizeof(float) * MAX_REC_SAMPLES;
 }  // namespace
 class Recorder {
