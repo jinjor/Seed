@@ -479,7 +479,8 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
       lowFreqGrip(Colours::blueviolet, false),
       highFreqMask{Colour::fromRGBA(255, 255, 255, 127)},
       lowFreqMask{Colour::fromRGBA(255, 255, 255, 127)},
-      playStartGrip{Colours::cornflowerblue, true} {
+      playStartGrip{Colours::cornflowerblue, true},
+      playingPosition{Colours::grey} {
     for (auto& entryButton : entryButtons) {
         entryButton.setLookAndFeel(&seedLookAndFeel);
         entryButton.addListener(this);
@@ -524,6 +525,7 @@ AnalyserWindow2::AnalyserWindow2(Recorder& recorder, AllParams& allParams)
     addAndMakeVisible(lowFreqMask);
     playStartGrip.addMouseListener(this, false);
     addAndMakeVisible(playStartGrip);
+    addAndMakeVisible(playingPosition);
 
     addKeyListener(this);
 
@@ -614,10 +616,20 @@ void AnalyserWindow2::relocateFilterComponents() {
 }
 void AnalyserWindow2::relocatePlayGuideComponents() {
     int currentEntryIndex = recorder.getCurrentEntryIndex();
-
-    float playStartSec = allParams.entryParams[currentEntryIndex].PlayStartSec->get();
-    float x = heatMap.getX() + heatMap.getWidth() * (playStartSec / MAX_REC_SECONDS);
-    playStartGrip.setBounds(x - (GRIP_WIDTH / 2), heatMap.getY() - GRIP_MARGIN - GRIP_LENGTH, GRIP_WIDTH, GRIP_LENGTH);
+    {
+        float playStartSec = allParams.entryParams[currentEntryIndex].PlayStartSec->get();
+        float x = heatMap.getX() + heatMap.getWidth() * (playStartSec / MAX_REC_SECONDS);
+        playStartGrip.setBounds(
+            x - (GRIP_WIDTH / 2), heatMap.getY() - GRIP_MARGIN - GRIP_LENGTH, GRIP_WIDTH, GRIP_LENGTH);
+    }
+    if (recorder.isPlaying()) {
+        playingPosition.setVisible(true);
+        float pos = recorder.getPlayingPositionInSec();
+        float x = heatMap.getX() + heatMap.getWidth() * (pos / MAX_REC_SECONDS);
+        playingPosition.setBounds(x, heatMap.getY(), 1, heatMap.getHeight());
+    } else {
+        playingPosition.setVisible(false);
+    }
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
     for (int i = 0; i < NUM_ENTRIES; i++) {

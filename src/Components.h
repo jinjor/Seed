@@ -579,6 +579,7 @@ private:
     JustRectangle highFreqMask;
     JustRectangle lowFreqMask;
     SliderGrip playStartGrip;
+    JustRectangle playingPosition;
 
     // methods
     virtual void timerCallback() override;

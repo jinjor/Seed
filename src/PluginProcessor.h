@@ -118,6 +118,10 @@ public:
         std::lock_guard<std::mutex> lock(mtx);
         currentEntryIndex = index;
     }
+    bool isPlaying() {
+        std::lock_guard<std::mutex> lock(mtx);
+        return mode == Mode::PLAYING;
+    }
     bool canOperate() {
         std::lock_guard<std::mutex> lock(mtx);
         return mode == Mode::WAITING;
@@ -126,6 +130,13 @@ public:
         std::lock_guard<std::mutex> lock(mtx);
         currentEntryIndex = index;
         filterEnabled = false;  // TODO: ロジックが微妙
+    }
+    float getPlayingPositionInSec() {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (mode != Mode::PLAYING) {
+            return -1;
+        }
+        return (float)cursor / entries[currentEntryIndex].sampleRate;
     }
     void play(float fromSec, bool filterEnabled, int n, float lowFreq, float highFreq) {
         std::lock_guard<std::mutex> lock(mtx);
