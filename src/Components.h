@@ -537,6 +537,10 @@ constexpr int FFT_SIZE = 4096;
 
 constexpr float VIEW_MIN_FREQ = 20.0f;
 constexpr float VIEW_MAX_FREQ = 20000.0f;
+
+float GRIP_WIDTH = 10.0f;
+float GRIP_LENGTH = 22.0f;
+float GRIP_MARGIN = 4.0f;
 }  // namespace
 class AnalyserWindow2 : public juce::Component, juce::Button::Listener, private juce::Timer, juce::KeyListener {
 public:
@@ -611,6 +615,8 @@ private:
         float frac = indexFloat - index;
         return processedFFTData[index] * (1 - frac) + processedFFTData[index + 1] * frac;
     }
+    void relocatePlayGuideComponents();
+    void relocateFilterComponents();
     virtual bool keyPressed(const KeyPress& key, Component* originatingComponent) override;
     virtual bool keyStateChanged(bool isKeyDown, Component* originatingComponent) override;
 };

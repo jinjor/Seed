@@ -552,30 +552,8 @@ void AnalyserWindow2::resized() {
     envelopeView.setBounds(inner.withTrimmedRight(width * 0.2).withTrimmedTop(height * 0.8 + 2.0));
     spectrumView.setBounds(inner.withTrimmedLeft(width * 0.8 + 2.0).withTrimmedBottom(height * 0.2));
 
-    int currentEntryIndex = recorder.getCurrentEntryIndex();
-    float gripWidth = 10.0f;
-    float gripLength = 22.0f;
-    float gripMargin = 4.0f;
-    {
-        float freq = allParams.entryParams[currentEntryIndex].FilterHighFreq->get();
-        float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
-        float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
-        highFreqGrip.setBounds(
-            heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
-        highFreqMask.setBounds(heatMap.getBounds().removeFromTop(viewY - heatMap.getY()));
-    }
-    {
-        float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
-        float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
-        float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
-        lowFreqGrip.setBounds(heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
-        lowFreqMask.setBounds(heatMap.getBounds().removeFromBottom(heatMap.getBottom() - viewY));
-    }
-    {
-        float playStartSec = allParams.entryParams[currentEntryIndex].PlayStartSec->get();
-        float x = heatMap.getX() + heatMap.getWidth() * (playStartSec / MAX_REC_SECONDS);
-        playStartGrip.setBounds(x - (gripWidth / 2), heatMap.getY() - gripMargin - gripLength, gripWidth, gripLength);
-    }
+    relocateFilterComponents();
+    relocatePlayGuideComponents();
 }
 void AnalyserWindow2::timerCallback() {
     stopTimer();
@@ -612,31 +590,34 @@ void AnalyserWindow2::timerCallback() {
     recordButton.setEnabled(canOperate);
     playButton.setEnabled(canOperate);
 
-    // TODO: 共通化
-    juce::Rectangle<int> bounds = getLocalBounds();
-    float gripWidth = 10.0f;
-    float gripLength = 22.0f;
-    float gripMargin = 4.0f;
+    relocateFilterComponents();
+    relocatePlayGuideComponents();
+}
+void AnalyserWindow2::relocateFilterComponents() {
+    int currentEntryIndex = recorder.getCurrentEntryIndex();
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterHighFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
         highFreqGrip.setBounds(
-            heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
+            heatMap.getX() - GRIP_MARGIN - GRIP_LENGTH, viewY - (GRIP_WIDTH / 2), GRIP_LENGTH, GRIP_WIDTH);
         highFreqMask.setBounds(heatMap.getBounds().removeFromTop(viewY - heatMap.getY()));
     }
     {
         float freq = allParams.entryParams[currentEntryIndex].FilterLowFreq->get();
         float scopeY = hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, freq) * FREQ_SCOPE_SIZE;
         float viewY = heatMap.getY() + heatMap.getHeight() * (1.0f - scopeY / FREQ_SCOPE_SIZE);
-        lowFreqGrip.setBounds(heatMap.getX() - gripMargin - gripLength, viewY - (gripWidth / 2), gripLength, gripWidth);
+        lowFreqGrip.setBounds(
+            heatMap.getX() - GRIP_MARGIN - GRIP_LENGTH, viewY - (GRIP_WIDTH / 2), GRIP_LENGTH, GRIP_WIDTH);
         lowFreqMask.setBounds(heatMap.getBounds().removeFromBottom(heatMap.getBottom() - viewY));
     }
-    {
-        float playStartSec = allParams.entryParams[currentEntryIndex].PlayStartSec->get();
-        float x = heatMap.getX() + heatMap.getWidth() * (playStartSec / MAX_REC_SECONDS);
-        playStartGrip.setBounds(x - (gripWidth / 2), heatMap.getY() - gripMargin - gripLength, gripWidth, gripLength);
-    }
+}
+void AnalyserWindow2::relocatePlayGuideComponents() {
+    int currentEntryIndex = recorder.getCurrentEntryIndex();
+
+    float playStartSec = allParams.entryParams[currentEntryIndex].PlayStartSec->get();
+    float x = heatMap.getX() + heatMap.getWidth() * (playStartSec / MAX_REC_SECONDS);
+    playStartGrip.setBounds(x - (GRIP_WIDTH / 2), heatMap.getY() - GRIP_MARGIN - GRIP_LENGTH, GRIP_WIDTH, GRIP_LENGTH);
 }
 void AnalyserWindow2::buttonClicked(juce::Button* button) {
     for (int i = 0; i < NUM_ENTRIES; i++) {
