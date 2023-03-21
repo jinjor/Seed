@@ -714,8 +714,8 @@ void AnalyserWindow2::mouseDrag(const MouseEvent& event) {
 void AnalyserWindow2::mouseDoubleClick(const MouseEvent& event) {
     if (event.eventComponent == &spectrumView) {
         auto bounds = heatMap.getBounds();
-        auto minFreq = 40.0f;
-        auto maxFreq = 20000.0f;
+        auto minFreq = VIEW_MIN_FREQ;
+        auto maxFreq = VIEW_MAX_FREQ;
         auto yratio = (float)event.y / bounds.getHeight();
         auto freq = xToHz(minFreq, maxFreq, 1.0f - yratio);
         int currentEntryIndex = recorder.getCurrentEntryIndex();
