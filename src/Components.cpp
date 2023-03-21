@@ -576,11 +576,13 @@ void AnalyserWindow2::timerCallback() {
     startTimerHz(30.0f);
 
     auto heatMapBounds = heatMap.getBounds();
+    auto focusedFreqIndex = getFocusedFreqIndex();
     envelopeLine.setBounds(
         heatMapBounds.getX(),
         heatMapBounds.getY() + heatMapBounds.getHeight() * (1.0f - (float)focusedFreqIndex / FREQ_SCOPE_SIZE),
         heatMapBounds.getWidth(),
         1);
+    auto focusedTimeIndex = getFocusedTimeIndex();
     spectrumLine.setBounds(heatMapBounds.getX() + heatMapBounds.getWidth() * (float)focusedTimeIndex / TIME_SCOPE_SIZE,
                            heatMapBounds.getY(),
                            1,
@@ -668,8 +670,12 @@ void AnalyserWindow2::mouseDown(const MouseEvent& event) {
         auto bounds = heatMap.getBounds();
         auto xratio = (float)event.x / bounds.getWidth();
         auto yratio = (float)event.y / bounds.getHeight();
-        focusedTimeIndex = TIME_SCOPE_SIZE * xratio;
-        focusedFreqIndex = FREQ_SCOPE_SIZE * (1.0f - yratio);
+        auto sec = MAX_REC_SECONDS * xratio;
+        auto freq = xToHz(VIEW_MIN_FREQ, VIEW_MAX_FREQ, 1.0f - yratio);
+        auto& entryParams = allParams.entryParams[recorder.getCurrentEntryIndex()];
+        *entryParams.FocusSec = sec;
+        *entryParams.FocusFreq = freq;
+
         drawEnvelopeView();
         drawSpectrumView();
         repaint();
@@ -782,7 +788,7 @@ void AnalyserWindow2::drawEnvelopeView() {
     }
 
     g.setColour(colour::ENVELOPE_LINE);
-    int y = focusedFreqIndex;
+    int y = getFocusedFreqIndex();
     for (int x = 1; x < TIME_SCOPE_SIZE; ++x) {
         auto prev = allScopeData[x - 1][y];
         auto curr = allScopeData[x][y];
@@ -807,7 +813,7 @@ void AnalyserWindow2::drawSpectrumView() {
     }
 
     g.setColour(colour::SPECTRUM_LINE);
-    int x = focusedTimeIndex;
+    int x = getFocusedTimeIndex();
     for (int y = 1; y < FREQ_SCOPE_SIZE; ++y) {
         auto prev = allScopeData[x][y - 1];
         auto curr = allScopeData[x][y];
@@ -820,6 +826,7 @@ void AnalyserWindow2::drawSpectrumView() {
 void AnalyserWindow2::paint(juce::Graphics& g) {}
 bool AnalyserWindow2::keyPressed(const KeyPress& key, Component* originatingComponent) {
     if (key.getKeyCode() == juce::KeyPress::upKey) {
+        auto focusedFreqIndex = getFocusedFreqIndex();
         if (focusedFreqIndex < FREQ_SCOPE_SIZE - 1) {
             focusedFreqIndex++;
             drawEnvelopeView();
@@ -827,6 +834,7 @@ bool AnalyserWindow2::keyPressed(const KeyPress& key, Component* originatingComp
         }
         return true;
     } else if (key.getKeyCode() == juce::KeyPress::downKey) {
+        auto focusedFreqIndex = getFocusedFreqIndex();
         if (focusedFreqIndex > 0) {
             focusedFreqIndex--;
             drawEnvelopeView();
@@ -834,6 +842,7 @@ bool AnalyserWindow2::keyPressed(const KeyPress& key, Component* originatingComp
         }
         return true;
     } else if (key.getKeyCode() == juce::KeyPress::leftKey) {
+        auto focusedTimeIndex = getFocusedTimeIndex();
         if (focusedTimeIndex > 1) {
             focusedTimeIndex -= 2;
             drawSpectrumView();
@@ -841,6 +850,7 @@ bool AnalyserWindow2::keyPressed(const KeyPress& key, Component* originatingComp
         }
         return true;
     } else if (key.getKeyCode() == juce::KeyPress::rightKey) {
+        auto focusedTimeIndex = getFocusedTimeIndex();
         if (focusedTimeIndex < TIME_SCOPE_SIZE - 2) {
             focusedTimeIndex += 2;
             drawSpectrumView();

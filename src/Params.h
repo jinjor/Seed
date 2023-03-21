@@ -22,6 +22,8 @@ public:
     juce::AudioParameterFloat* FilterLowFreq;
     juce::AudioParameterFloat* FilterHighFreq;
     juce::AudioParameterFloat* PlayStartSec;
+    juce::AudioParameterFloat* FocusFreq;
+    juce::AudioParameterFloat* FocusSec;
 
     EntryParams(int index);
     EntryParams(const EntryParams&) = delete;

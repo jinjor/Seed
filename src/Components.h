@@ -562,8 +562,14 @@ private:
     float allFftData[TIME_SCOPE_SIZE][FFT_SIZE * 2]{};
     float allScopeData[TIME_SCOPE_SIZE][FREQ_SCOPE_SIZE]{};
     bool calculated = false;
-    int focusedTimeIndex = TIME_SCOPE_SIZE / 2;
-    int focusedFreqIndex = FREQ_SCOPE_SIZE / 2;
+    int getFocusedTimeIndex() {
+        auto& entryParams = allParams.entryParams[recorder.getCurrentEntryIndex()];
+        return TIME_SCOPE_SIZE * (entryParams.FocusSec->get() / MAX_REC_SECONDS);
+    }
+    int getFocusedFreqIndex() {
+        auto& entryParams = allParams.entryParams[recorder.getCurrentEntryIndex()];
+        return FREQ_SCOPE_SIZE * hzToX(VIEW_MIN_FREQ, VIEW_MAX_FREQ, entryParams.FocusFreq->get());
+    }
 
     std::array<juce::ToggleButton, NUM_ENTRIES> entryButtons;
     juce::ToggleButton recordButton;
